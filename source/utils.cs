@@ -384,11 +384,10 @@ namespace source.functions
         }
 
         //gpp
-        public static (float waterStressGPP, float waterStressRECO) waterStressFunction(output outputT1, input input, parameters parameters, int hour)
+        public static float  waterStressFunction(output outputT1, input input, parameters parameters, int hour)
         {
             float waterAvailability = 0;
             float waterStress = 0;
-            float waterStressRECO = 0;
 
             outputT1.exchanges.PrecipitationMemory.Add(input.hourlyData.precipitation[hour]);
             outputT1.exchanges.ET0memory.Add(input.hourlyData.referenceET0[hour]);
@@ -397,6 +396,8 @@ namespace source.functions
                 (int)parameters.parExchanges.waterStressDays * 24)
             {
                 waterAvailability = 1;
+                waterStress = 1;
+
             }
             else
             {
@@ -428,17 +429,7 @@ namespace source.functions
                     waterStress = parameters.parExchanges.waterStressSensitivity *
                         (waterAvailability - parameters.parExchanges.waterStressThreshold) + 1;
                 }
-                // water stress RECO
-
-                if (waterAvailability >= parameters.parExchanges.waterStressRECOThreshold)
-                {
-                    waterStressRECO = 1;
-                }
-                else
-                {
-                    waterStressRECO = parameters.parExchanges.waterStressRECOSensitivity *
-                        (waterAvailability - parameters.parExchanges.waterStressRECOThreshold) + 1;
-                }
+               
 
 
                 //remove when the memory effect ends
@@ -456,7 +447,7 @@ namespace source.functions
                 waterStress = 0;
             }
 
-            return (waterStress, waterStressRECO);
+            return (waterStress);
         }
 
         public static float temperatureFunction(float temperature, float tmin, float topt, float tmax)
@@ -569,8 +560,8 @@ namespace source.functions
             float gppRecoFunction = 0;
             //compute function
             gppRecoFunction = parameters.parExchanges.referenceRespiration +
-                (parameters.parExchanges.respirationGPPresponseOver * gppOver * (1 - PARscaleOverstory) *RecoRespirationFunction(input,outputs1,parameters)) +
-                (parameters.parExchanges.respirationGPPresponseUnder * gppUnder*(1 - PARscaleUnderstory));
+                (parameters.parExchanges.respirationGPPresponseOver * gppOver  * RecoRespirationFunction(input,outputs1,parameters)) +
+                (parameters.parExchanges.respirationGPPresponseUnder * gppUnder);
 
             return gppRecoFunction;
         }

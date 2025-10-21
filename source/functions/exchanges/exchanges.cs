@@ -7,6 +7,10 @@ namespace source.functions
     //this class contains the method to simulate the growth, greendown and decline processes
     public class exchanges
     {
+        // fuori dal loop orario, p.es. a livello di metodo o di istanza del modello
+        float prevRecoState = float.NaN; // persiste tra i giorni
+
+
         public void VPRM(input input, parameters parameters, output output, output outputT1)
         {
             hourlyData hourlyData = input.hourlyData;
@@ -32,6 +36,7 @@ namespace source.functions
             const float UMOL_PER_J = 4.57f;          // µmol per joule
             const float SW_TO_PAR = FRACTION_PAR_OF_SW * UMOL_PER_J;
 
+            
             //hourly loop
             for (int h = 0; h < hourlyData.airTemperature.Count; h++)
             {
@@ -132,8 +137,8 @@ namespace source.functions
 
                 #region Water availability effects
                 //compute water stress
-                var (waterStressGPP, waterStressRECO) = utils.waterStressFunction(outputT1, input, parameters, h);
-                outputT1.exchanges.WaterStress.Add(waterStressGPP);
+                var waterStress = utils.waterStressFunction(outputT1, input, parameters, h);
+                outputT1.exchanges.WaterStress.Add(waterStress);
                 #endregion
 
                 #region Phenology effect
@@ -155,12 +160,12 @@ namespace source.functions
                 {
                     float eviOver = EVIoverstory;
                     gppOver = estimateGPPoverstory(parameters, VPDscale, TscaleOver, /*light*/ Iabs_over,
-                        PARscaleOverstory, waterStressGPP, PhenologyScale, eviOver);
+                        PARscaleOverstory, waterStress, PhenologyScale, eviOver);
                 }
                 //EVI and GPP of the understory
                 float eviUnder = EVIunderstory;
                 float gppUnder = estimateGPPunderstory(parameters, VPDscale, TscaleUnder,
-                    Iabs_under, PARscaleUnderstory, waterStressGPP, eviUnder);
+                    Iabs_under, PARscaleUnderstory, waterStress, eviUnder);
 
                 //pass to the list
                 outputT1.exchanges.gppOver.Add(gppOver);
@@ -172,35 +177,28 @@ namespace source.functions
                 #region Respiration estimation
 
                 //temperature soil scaler
-
-                float vegetationTemperature = LeafTemperatureUnder;
-                if(outputT1.phenoCode >= 3)
-                {
-                    vegetationTemperature = (LeafTemperatureUnder + LeafTemperatureOver) * .5F;
-                }
-
-                float Treco = utils.temperatureRecoFunction(hourlyData.soilTemperature[h], parameters);
+                float Treco = utils.temperatureRecoFunction(hourlyData.soilTemperature[h],  parameters);
                 
                 outputT1.exchanges.TscaleReco.Add(Treco);
                 //same water stress than GPP
-                outputT1.exchanges.WscaleReco.Add(waterStressRECO);
+                outputT1.exchanges.WscaleReco.Add(waterStress);
 
                 //estimate RECO from GPP
                 
                 float RECOgppFunctionUnder = utils.gppRecoFunction(input, gppOver, gppUnder, 
                     PARscaleOverstory,PARscaleUnderstory, outputT1, parameters);
 
-                float recoOver = 0;////estimateRECO(RECOgppFunctionOver, TrecoOver, waterStress); 
+                float rawReco = estimateRECO(RECOgppFunctionUnder, Treco, waterStress);
+                // Limite ±X%/h solo di notte, con gestione prima ora (lista vuota)
 
-                float recoUnder = estimateRECO(RECOgppFunctionUnder, Treco, waterStressRECO);
+                float reco = LimitRecoNight(rawReco, SW_IN, prevRecoState, parameters, (PARscaleUnderstory));
+                // aggiorna stato per l'ora successiva (e per il giorno successivo!)
+                prevRecoState = reco;
 
-                //total
-                float reco = recoUnder + recoOver;
                 
+
                 //just for saving the variable
-                outputT1.exchanges.recoUnder.Add(recoUnder);
-                outputT1.exchanges.recoOver.Add(recoOver);               
-                outputT1.exchanges.reco.Add(reco);
+                outputT1.exchanges.reco.Add(reco);           
 
                 #endregion
 
@@ -243,6 +241,30 @@ namespace source.functions
         {
             return gppRECO * TscaleReco * WscaleReco; 
         }
+
+       private float LimitRecoNight(
+       float rawReco,      // RECO calcolata “grezza” per l’ora h
+       float par,          // PAR/SW_IN dell’ora h
+       float prevReco,     // ultima RECO uscita (può essere NaN alla prima ora)
+       parameters p,
+       float PARscaleFactor)
+        {
+            // prima ora: nessun blending per evitare salti iniziali
+            if (float.IsNaN(prevReco)) return rawReco;
+
+            float a = 0;
+
+            bool isNight = par <  p.parExchanges.parRespSmoothing; // es. 5
+
+            if(isNight) { a = Math.Clamp(p.parExchanges.nightSensitivityScale, 0f, 1f); }
+            else { return rawReco; };
+            if (prevReco > 0)
+            { }
+
+            return prevReco + a * (rawReco - prevReco);   // sempre attivo di notte
+            
+        }
+
         #endregion
     }
 }

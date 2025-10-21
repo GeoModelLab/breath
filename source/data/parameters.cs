@@ -182,10 +182,12 @@ namespace source.data
         //public float referenceRespirationUnder { get; set; } //micromoles m-2 s-1
         //response of the ecosystem respiration to GPP
         public float respirationGPPresponseOver { get; set; } //unitless
-        public float respirationGPPresponseUnder { get; set; } //unitless                        //public float respirationResponseUnder { get; set; } //unitless
-        public float waterStressRECOThreshold { get; set; } //days
-        public float waterStressRECOSensitivity { get; set; } //days
+        public float respirationGPPresponseUnder { get; set; } //unitless                  
+
         public float respirationAgingFactor { get; set; } //days
+        public float parRespSmoothing { get; set; } //days
+
+        public float nightSensitivityScale { get; set; } //days
     }
 
   

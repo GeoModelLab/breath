@@ -195,8 +195,6 @@ namespace source.data
         public List<float> TscaleReco = new List<float>();
         public List<float> WscaleReco = new List<float>();
         public List<float> PhenologyscaleReco = new List<float>();
-        public List<float> recoOver = new List<float>();
-        public List<float> recoUnder = new List<float>();
         public List<float> reco = new List<float>();
         public float recoDaily { get; set; }
 
