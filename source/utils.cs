@@ -805,6 +805,7 @@ namespace source.functions
             outputT1 = new output();
 
             //call the functions
+            #region SWELL
             //dormancy season
             dormancy.induction(input, parameters, outputT0, outputT1);
             dormancy.endodormancy(input, parameters, outputT0, outputT1);
@@ -815,6 +816,8 @@ namespace source.functions
             growing.declineRate(input, parameters, outputT0, outputT1);
             //NDVI dynamics
             VIdynamics.ndviNormalized(input, parameters, outputT0, outputT1);
+            #endregion
+
             exchanges.VPRM(input, parameters, outputT0, outputT1);
 
             outputT1.weather.date = input.date;

@@ -8,7 +8,6 @@ namespace source.data
     public class input
     {
         public float PAR { get; set; } //photosynthetically active radiation, MJ m-2 d-1
-        public string vegetationIndex { get; set; }  //vegetation index (NDVI/EVI)
         public float airTemperatureMaximum { get; set; }  //air temperature maximum, °C
         public float airTemperatureMinimum { get; set; } //air temperature minimum, °C
         public float dewPointTemperature { get; set; } //dew point temperature, °C

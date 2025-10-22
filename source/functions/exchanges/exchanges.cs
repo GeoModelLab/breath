@@ -38,7 +38,7 @@ namespace source.functions
 
             
             //hourly loop
-            for (int h = 0; h < hourlyData.airTemperature.Count; h++)
+            for (int h = 0; h < 24; h++)
             {
                 #region Radiation partitioning and PAR conversion 
                 

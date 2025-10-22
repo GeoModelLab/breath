@@ -1,0 +1,27 @@
+pixelID, ecoRegion, param, value
+CA-Oas,Dfc,parEcodormancy_photoThermalThreshold,8.04
+CA-Oas,Dfc,parGrowth_thermalThreshold,27.924
+CA-Oas,Dfc,parGreendown_thermalThreshold,40.244
+CA-Oas,Dfc,parSenescence_photoThermalThreshold,71.032
+CA-Oas,Dfc,parVegetationIndex_nVIGrowth,3.401
+CA-Oas,Dfc,parVegetationIndex_nVISenescence,0.48
+CA-Oas,Dfc,parVegetationIndex_nVIGreendown,0.193
+CA-Oas,Dfc,parVegetationIndex_nVIEcodormancy,0.751
+CA-Oas,Dfc,parVegetationIndex_nVIEndodormancy,0.779
+CA-Oas,Dfc,parVegetationIndex_minimumVI,0.128
+CA-Oas,Dfc,parVegetationIndex_maximumVI,0.582
+CA-Oas,Dfc,parExchanges_minimumTemperature,0.111
+CA-Oas,Dfc,parExchanges_optimumTemperature,22.102
+CA-Oas,Dfc,parExchanges_maximumTemperature,42.898
+CA-Oas,Dfc,parExchanges_halfSaturationValue,278.64
+CA-Oas,Dfc,parExchanges_maximumQuantumYieldTree,0.07
+CA-Oas,Dfc,parExchanges_waterStressSensitivity,0.483
+CA-Oas,Dfc,parExchanges_growthPhenologyScalingFactor,0.344
+CA-Oas,Dfc,parExchanges_declinePhenologyScalingFactor,0.57
+CA-Oas,Dfc,parExchanges_vpdSensitivity,0.302
+CA-Oas,Dfc,parExchanges_activationEnergyParameterSoil,122.092
+CA-Oas,Dfc,parExchanges_referenceRespirationTree,2.365
+CA-Oas,Dfc,parExchanges_referenceRespirationUnder,2.28
+CA-Oas,Dfc,parExchanges_respirationAgingFactor,0.727
+CA-Oas,Dfc,parExchanges_respirationResponseUnder,0.178
+CA-Oas,Dfc,parExchanges_respirationResponseTree,0.033
