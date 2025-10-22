@@ -1,2 +1,3 @@
 /src/runner/bin/Debug/net8.0-windows/outputsCalibration_exchanges/
 /data/*
+/source/obj/*
