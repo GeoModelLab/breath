@@ -1,0 +1,71 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\REPO\\breath\\vvvv\\EditShaders\\EditShaders.csproj": {}
+  },
+  "projects": {
+    "C:\\REPO\\breath\\vvvv\\EditShaders\\EditShaders.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\REPO\\breath\\vvvv\\EditShaders\\EditShaders.csproj",
+        "projectName": "EditShaders",
+        "projectPath": "C:\\REPO\\breath\\vvvv\\EditShaders\\EditShaders.csproj",
+        "packagesPath": "C:\\Users\\Natan\\.nuget\\packages\\",
+        "outputPath": "C:\\REPO\\breath\\vvvv\\EditShaders\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\REPO\\breath\\vvvv\\EditShaders\\NuGet.Config",
+          "C:\\Users\\Natan\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net472"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "http://teamcity.vvvv.org/guestAuth/app/nuget/v1/FeedService.svc/": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net472": {
+            "targetAlias": "net472",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net472": {
+          "targetAlias": "net472",
+          "dependencies": {
+            "VL.Stride.Runtime": {
+              "target": "Package",
+              "version": "[2021.4.0-0380-gf5b6e2becd, )"
+            }
+          },
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.Net.Sdk.Compilers.Toolset",
+              "version": "[9.0.301, 9.0.301]"
+            }
+          ],
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

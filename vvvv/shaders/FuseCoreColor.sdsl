@@ -1,0 +1,975 @@
+shader FuseCoreColor
+{
+
+	////////////////////////////////////////////////////////////////
+	//
+	//          Color Helpers
+	// 	
+	////////////////////////////////////////////////////////////////
+
+
+	// good piece of code by Ian Taylor (from http://www.chilliant.com/rgb2hsv.html ) 
+	float3 HUEtoRGB(float H)
+	{
+		H=frac(H);
+		float R = abs(H * 6 - 3) - 1;
+		float G = 2 - abs(H * 6 - 2);
+		float B = 2 - abs(H * 6 - 4);
+		return saturate(float3(R,G,B));
+	}
+
+	float3 HSVtoRGB(float3 HSV)
+	{
+		float3 RGB = HUEtoRGB(HSV.x);
+		return ((RGB - 1) * HSV.y + 1) * HSV.z;
+	}
+
+	float3 RGBtoHSV(float3 RGB)
+	{
+		float3 HSV = 0;
+		HSV.z = max(RGB.r, max(RGB.g, RGB.b));
+		float M = min(RGB.r, min(RGB.g, RGB.b));
+		float C = HSV.z - M;
+		if (C != 0)
+		{
+			float4 RGB0 = float4(RGB, 0);
+			float4 Delta = (HSV.z - RGB0) / C;
+			Delta.rgb -= Delta.brg;
+			Delta.rgb += float3(2,4,6);
+			Delta.brg = step(HSV.z, RGB) * Delta.brg;
+			HSV.x = max(Delta.r, max(Delta.g, Delta.b));
+			HSV.x = frac(HSV.x / 6);
+			HSV.y = 1 / Delta.w;
+		}
+		return HSV;
+	}
+
+	// Smooth HSV to RGB conversion 
+	float3 HSVtoRGB_smooth(float3 col)
+	{
+		float3 rgb = HUEtoRGB(col.x);
+		rgb = rgb*rgb*(3.0-2.0*rgb); // cubic smoothing	
+		return col.z * lerp( float3(1.0,1.0,1.0), rgb, col.y);
+	}
+
+	float3 HSLtoRGB(float3 HSL)
+	{
+		float3 RGB = HUEtoRGB(HSL.x);
+		float C = (1 - abs(2 * HSL.z - 1)) * HSL.y;
+		return (RGB - 0.5) * C + HSL.z;
+	}
+
+	float3 HSLtoRGB_smooth(float3 HSL)
+	{
+		float3 RGB = HUEtoRGB(HSL.x);
+		RGB = RGB*RGB*(3.0-2.0*RGB); // cubic smoothing	
+		float C = (1 - abs(2 * HSL.z - 1)) * HSL.y;
+		return (RGB - 0.5) * C + HSL.z;
+	}
+
+
+	float3 RGBtoHSL(float3 RGB)
+	{
+		float3 HSL = 0;
+		float U, V;
+		U = -min(RGB.r, min(RGB.g, RGB.b));
+		V = max(RGB.r, max(RGB.g, RGB.b));
+		HSL.z = (V - U) * 0.5;
+		float C = V + U;
+		if (C != 0)
+		{
+			float3 Delta = (V - RGB) / C;
+			Delta.rgb -= Delta.brg;
+			Delta.rgb += float3(2,4,6);
+			Delta.brg = step(V, RGB) * Delta.brg;
+			HSL.x = max(Delta.r, max(Delta.g, Delta.b));
+			HSL.x = frac(HSL.x / 6);
+			HSL.y = C / (1 - abs(2 * HSL.z - 1));
+		}
+		return HSL;
+	}
+
+	float3 RGBtoOKLab(float3 RGB){
+		
+
+		const float3x3 kCONEtoLMS = float3x3(                
+			0.4121656120, 0.2118591070, 0.0883097947,
+			0.5362752080, 0.6807189584, 0.2818474174,
+			0.0514575653, 0.1074065790, 0.6302613616
+		);
+
+		float3 lms = mul(RGB, kCONEtoLMS);
+
+		lms = sign(lms) * pow(abs(lms) , float3(1.0/3.0,1.0/3.0,1.0/3.0));
+
+		const float3x3 invA = float3x3(
+			0.2104542553, 1.9779984951, 0.0259040371,
+            0.7936177850, -2.4285922050, 0.7827717662,
+            -0.0040720468, 0.4505937099, -0.8086757660
+		);
+		return mul(lms,invA);
+	}
+
+	float3 OKLabToRGB(float3 okLab){
+		// Calculate inverted LMS components
+		const float3x3 ToLMS = float3x3(
+			1.0, 1.0, 1.0,
+            0.3963377774, -0.1055613458, -0.0894841775,
+            0.2158037573, -0.0638541728, -1.2914855480
+		);
+    	float3 lms = mul(okLab,ToLMS);
+
+		const float3x3 kLMStoCONE = float3x3(
+			 4.0767245293, -1.2681437731, -0.0041119885,
+			-3.3072168827,  2.6093323231, -0.7034763098,
+			 0.2307590544, -0.3411344290,  1.7068625689
+		);
+	
+		return mul((lms*lms*lms),kLMStoCONE);
+	}
+
+	// Converts an srgb color to linear space
+	// Copyright (c) Stride contributors (https://stride3d.net) and Silicon Studio Corp. (https://www.siliconstudio.co.jp)
+	// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+	// http://chilliant.blogspot.jp/2012/08/srgb-approximations-for-hlsl.html
+
+	
+	float SRGBToLinear(float sRGB){  
+		return sRGB * (sRGB * (sRGB * 0.305306011 + 0.682171111) + 0.012522878);
+	}
+
+	float2 SRGBToLinear(float2 sRGB){
+		return sRGB * (sRGB * (sRGB * 0.305306011 + 0.682171111) + 0.012522878);
+	}
+
+	float3 SRGBToLinear(float3 sRGB){
+		return sRGB * (sRGB * (sRGB * 0.305306011 + 0.682171111) + 0.012522878);
+	}
+
+	// Converts an srgb color to linear space
+	float4 SRGBToLinear(float4 sRGBa){
+		float3 sRGB = sRGBa.rgb;
+		return float4(sRGB * (sRGB * (sRGB * 0.305306011 + 0.682171111) + 0.012522878), sRGBa.a);
+	}
+
+	float LinearToSRGB(float RGB){
+		float S1 = sqrt(RGB);
+		float S2 = sqrt(S1);
+		float S3 = sqrt(S2);
+		return 0.662002687 * S1 + 0.684122060 * S2 - 0.323583601 * S3 - 0.0225411470 * RGB;
+	}
+
+	float2 LinearToSRGB(float2 RGB){
+		float2 S1 = sqrt(RGB);
+		float2 S2 = sqrt(S1);
+		float2 S3 = sqrt(S2);
+		return 0.662002687 * S1 + 0.684122060 * S2 - 0.323583601 * S3 - 0.0225411470 * RGB;
+	}
+
+	float3 LinearToSRGB(float3 RGB){
+		float3 S1 = sqrt(RGB);
+		float3 S2 = sqrt(S1);
+		float3 S3 = sqrt(S2);
+		return 0.662002687 * S1 + 0.684122060 * S2 - 0.323583601 * S3 - 0.0225411470 * RGB;
+	}
+
+	float4 LinearToSRGB(float4 RGB){
+		float4 S1 = sqrt(RGB);
+		float4 S2 = sqrt(S1);
+		float4 S3 = sqrt(S2);
+		return 0.662002687 * S1 + 0.684122060 * S2 - 0.323583601 * S3 - 0.0225411470 * RGB;
+	}
+
+	////////////////////////////////////////////////////////////////
+	//
+	//             Palettes
+	//
+	////////////////////////////////////////////////////////////////
+
+	// A simple way to create color variation in a cheap way (yes, trigonometrics ARE cheap
+	// in the GPU, don't try to be smart and use a triangle wave instead).
+	// See http://iquilezles.org/www/articles/palettes/palettes.htm for more information
+
+
+	// would be good to name these parameters clearly
+	float3 pal(float t, float3 a, float3 b, float3 c, float3 d ){
+		return a + b * cos( 6.28318*(c*t+d) );
+	}
+
+	////////////////////////////////////////////////////////////////
+	//
+	//             MIX
+	//
+	////////////////////////////////////////////////////////////////
+
+	float3 OKLabMix( float3 colA, float3 colB, float blend ){
+		// Transformation matrices from Oklab to LMS and vice versa
+		const float3x3 kCONEtoLMS = {
+			0.4121656120, 0.2118591070, 0.0883097947,
+			0.5362752080, 0.6807189584, 0.2818474174,
+			0.0514575653, 0.1074065790, 0.6302613616
+		};
+		const float3x3 kLMStoCONE = {
+			4.0767245293, -1.2681437731, -0.0041119885,
+			-3.3072168827, 2.6093323231, -0.7034763098,
+			0.2307590544, -0.3411344290, 1.7068625689
+		};
+
+		// Convert RGB to LMS with gamma correction
+		float3 lmsA = pow(mul(kCONEtoLMS, colA), float3(1.0, 1.0, 1.0) / 3.0);
+		float3 lmsB = pow(mul(kCONEtoLMS, colB), float3(1.0, 1.0, 1.0) / 3.0);
+
+		// Linearly interpolate (lerp) between the LMS values
+		float3 lms = lerp(lmsA, lmsB, blend);
+
+		// Optional gain, uncomment if desired
+		// lms *= 1.0 + 0.2 * blend * (1.0 - blend);
+
+		// Convert back from LMS to RGB
+		return mul(kLMStoCONE, lms * lms * lms);
+	}
+
+	float3 GammaBlend(float3 colA, float3 colB, float t, float gamma)
+	{
+		// Avoid zero or negative gamma. 
+		gamma = max(gamma, 1e-5);
+
+		// 1) “Un-gamma” both colors
+		float invGamma = 1.0 / gamma;
+		float3 A = pow(colA, float3(invGamma, invGamma, invGamma));
+		float3 B = pow(colB, float3(invGamma, invGamma, invGamma));
+
+		// 2) Lerp in that gamma-flattened space
+		float3 mixed = lerp(A, B, t);
+
+		// 3) “Re-gamma” the result
+		return pow(mixed, float3(gamma, gamma, gamma));
+	}
+
+	float3 HSVBlend(float3 colA, float3 colB, float t)
+	{
+		// 1) Convert to HSV
+		float3 hsvA = RGBtoHSV(colA);
+		float3 hsvB = RGBtoHSV(colB);
+
+		// 2) Lerp in HSV space
+		float3 hsvMixed = lerp(hsvA, hsvB, t);
+
+		// 3) Convert back to RGB
+		return HSVtoRGB_smooth(hsvMixed);
+	}
+
+	float sabs(float x,float k) {float a = (.5/k)*x*x+k*.5; float b = abs(x); return b<k ? a : b;}
+
+	float3 pow_mix(float3 colA, float3 colB, float h, float baseg){
+  		float f = sabs(h-.5,.1)*2.;
+  		float3 gamma=float3(baseg,baseg,baseg)-f*(baseg-1.);
+  		colA=pow(colA, 1./gamma);
+  		colB=pow(colB, 1./gamma);
+  		return pow(lerp(colA, colB, h), gamma*(.5+f*.5));
+	}
+
+
+	////////////////////////////////////////////////////////////////
+	//
+	//             ACES ToneMap
+	//
+	////////////////////////////////////////////////////////////////
+
+
+	// sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
+	static const float3x3 ACESinputMat =
+	{
+		{0.59719, 0.35458, 0.04823},
+		{0.07600, 0.90834, 0.01566},
+		{0.02840, 0.13383, 0.83777}
+	};
+
+	// ODT_SAT => XYZ => D60_2_D65 => sRGB
+	static const float3x3 ACESOutputMat =
+	{
+		{ 1.60475, -0.53108, -0.07367},
+		{-0.10208,  1.10813, -0.00605},
+		{-0.00327, -0.07276,  1.07602}
+	};
+
+	float3 RRTAndODTFit(float3 v)
+	{
+		float3 a = v * (v + 0.0245786f) - 0.000090537f;
+		float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
+		return a / b;
+	}
+
+	float3 ACESFitted(float3 color, float gamma = 1)
+	{
+		color = mul(ACESinputMat, color);
+
+		// Apply RRT and ODT
+		color = RRTAndODTFit(color);
+
+		color = mul(ACESOutputMat*gamma, color);
+
+		// Clamp to [0, 1]
+		color = saturate(color);
+
+		return color;
+	}   
+
+
+
+	////////////////////////////////////////////////////////////////
+	//
+	//          Color Compression
+	// 	
+	////////////////////////////////////////////////////////////////
+	
+	// 24bit to 16bit
+	float2 EncodeR5G6B5(float3 rgb24)
+	{
+		// scale up to 8-bit
+		rgb24 *= 255.0f;
+ 
+		// remove the 3 LSB of red and blue, and the 2 LSB of green
+		int3 rgb16 = rgb24 / int3(8, 4, 8);
+ 
+		// split the green at bit 3 (we'll keep the 6 bits around the split)
+		float greenSplit = rgb16.g / 8.0f;
+
+		// pack it up (capital G's are MSB, the rest are LSB)
+		float2 packed;
+		packed.x = rgb16.r * 8 + floor(greenSplit);     // rrrrrGGG
+		packed.y = frac(greenSplit) * 256 + rgb16.b;        // gggbbbbb
+ 
+		// scale down and return
+		packed /= 255.0f;
+		return packed;
+	}
+ 
+	float3 DecodeR5G6B5(float2 packed) {
+		// scale up to 8-bit
+		packed *= 255.0f;
+ 
+		// round and split the packed bits
+		float2 split = round(packed) / 8;   // first component at bit 3
+		split.y /= 4;               // second component at bit 5
+ 
+		// unpack (obfuscated yet optimized crap follows)
+		float3 rgb16 = 0.0f.rrr;
+		rgb16.gb = frac(split) * 256;
+		rgb16.rg += floor(split) * 4;
+		rgb16.r *= 2;
+ 
+		// scale down and return
+		rgb16 /= 255.0f;
+		return rgb16;
+	}
+
+	// color <> bits
+	float4 FloatBitsToColor(float bits)
+	{
+	  uint colUint = asuint(bits);
+  
+	  float r = (colUint & 0xFF000000) >> 24;
+	  float g = (colUint & 0x00FF0000) >> 16;
+	  float b = (colUint & 0x0000FF00) >> 8;
+	  float a = (colUint & 0x000000FF);
+  
+	  return float4(r, g, b, 255) * 0.003921568627451;
+	}
+
+
+
+	float ColorToBits(float4 c){
+	 uint u=(uint(saturate(c.x)*255)<<0)
+	 |(uint(saturate(c.y)*255)<<8)
+	 |(uint(saturate(c.z)*255)<<16)
+	 |(uint(saturate(c.w)*255)<<24);
+	 return asfloat( u );
+	}
+
+	float4 BitsToColor(float f){
+	 uint u=asuint( f );
+	 float4 c=((u>>8)%256)/255.;
+	 c=float4(
+	 (u>>0)%256,
+	 (u>>8)%256,
+	 (u>>16)%256,
+	 (u>>24)%256
+	 )/255.;
+	 return c;
+	}
+
+	// --- Spectral Zucconi --------------------------------------------
+	// By Alan Zucconi
+	// Based on GPU Gems: https://developer.nvidia.com/sites/all/modules/custom/gpugems/books/GPUGems/gpugems_ch08.html
+	// But with values optimised to match as close as possible the visible spectrum
+	// Fits this: https://commons.wikimedia.org/wiki/File:Linear_visible_spectrum.svg
+	// With weighter MSE (RGB weights: 0.3, 0.59, 0.11)
+	float3 bump3y (float3 x, float3 yoffset){
+		float3 y = float3(1.,1.,1.) - x * x;
+		y = saturate(y-yoffset);
+		return y;
+	}
+
+	float3 spectral_zucconi (float w){
+		// w: [400, 700]
+		// x: [0,   1]
+		float x = saturate((w - 400.0)/ 300.0);
+
+		const float3 cs = float3(3.54541723, 2.86670055, 2.29421995);
+		const float3 xs = float3(0.69548916, 0.49416934, 0.28269708);
+		const float3 ys = float3(0.02320775, 0.15936245, 0.53520021);
+
+		return bump3y (	cs * (x - xs), ys);
+	}
+
+	// --- Spectral Zucconi 6 --------------------------------------------
+
+	// Based on GPU Gems
+	// Optimised by Alan Zucconi
+	float3 spectral_zucconi6 (float w){
+		// w: [400, 700]
+		// x: [0,   1]
+		float x = saturate((w - 400.0)/ 300.0);
+
+		const float3 c1 = float3(3.54585104, 2.93225262, 2.41593945);
+		const float3 x1 = float3(0.69549072, 0.49228336, 0.27699880);
+		const float3 y1 = float3(0.02312639, 0.15225084, 0.52607955);
+
+		const float3 c2 = float3(3.90307140, 3.21182957, 3.96587128);
+		const float3 x2 = float3(0.11748627, 0.86755042, 0.66077860);
+		const float3 y2 = float3(0.84897130, 0.88445281, 0.73949448);
+
+		return
+			bump3y(c1 * (x - x1), y1) +
+			bump3y(c2 * (x - x2), y2) ;
+	}
+
+	// --- MATLAB Jet Colour Scheme ----------------------------------------
+	float3 spectral_jet(float w){
+		// w: [400, 700]
+		// x: [0,   1]
+		float x = saturate((w - 400.0)/ 300.0);
+		float3 c;
+
+		if (x < 0.25)
+			c = float3(0.0, 4.0 * x, 1.0);
+		else if (x < 0.5)
+			c = float3(0.0, 1.0, 1.0 + 4.0 * (0.25 - x));
+		else if (x < 0.75)
+			c = float3(4.0 * (x - 0.5), 1.0, 0.0);
+		else
+			c = float3(1.0, 1.0 + 4.0 * (0.75 - x), 0.0);
+
+		// Clamp colour components in [0,1]
+		return saturate(c);
+	}
+
+	// --- GPU Gems -------------------------------------------------------
+	// https://developer.nvidia.com/sites/all/modules/custom/gpugems/books/GPUGems/gpugems_ch08.html
+	float3 bump3 (float3 x){
+		float3 y = float3(1.,1.,1.) - x * x;
+		y = max(y, float3(0.,0.,0.));
+		return y;
+	}
+
+	float3 spectral_gems (float w){
+		// w: [400, 700]
+		// x: [0,   1]
+		float x = saturate((w - 400.0)/ 300.0);
+
+		return bump3
+		(	float3
+			(
+				4. * (x - 0.75),	// Red
+				4. * (x - 0.5),	// Green
+				4. * (x - 0.25)	// Blue
+			)
+		);
+	}
+
+	// --- Approximate RGB values for Visible Wavelengths ------------------
+	// by Dan Bruton
+	// http://www.physics.sfasu.edu/astro/color/spectra.html
+	// https://stackoverflow.com/questions/3407942/rgb-values-of-visible-spectrum
+	float3 spectral_bruton (float w){
+		float3 c;
+
+		if (w >= 380. && w < 440.)
+			c = float3
+			(
+				-(w - 440.) / (440. - 380.),
+				0.0,
+				1.0
+			);
+		else if (w >= 440. && w < 490.)
+			c = float3
+			(
+				0.0,
+				(w - 440.) / (490. - 440.),
+				1.0
+			);
+		else if (w >= 490. && w < 510.)
+			c = float3
+			(	0.0,
+				1.0,
+				-(w - 510.) / (510. - 490.)
+			);
+		else if (w >= 510. && w < 580.)
+			c = float3
+			(
+				(w - 510.) / (580. - 510.),
+				1.0,
+				0.0
+			);
+		else if (w >= 580. && w < 645.)
+			c = float3
+			(
+				1.0,
+				-(w - 645.) / (645. - 580.),
+				0.0
+			);
+		else if (w >= 645. && w <= 780.)
+			c = float3
+			(	1.0,
+				0.0,
+				0.0
+			);
+		else
+			c = float3
+			(	0.0,
+				0.0,
+				0.0
+			);
+
+		return saturate(c);
+	}
+
+	// --- Spektre ---------------------------------------------------------
+	// http://stackoverflow.com/questions/3407942/rgb-values-of-visible-spectrum
+	float3 spectral_spektre (float l){
+		float r=0.0,g=0.0,b=0.0;
+		if ((l>=400.0)&&(l<410.0)) {
+			float t=(l-400.0)/(410.0-400.0); 
+			r=    +(0.33*t)-(0.20*t*t);
+		}else if ((l>=410.0)&&(l<475.0)) {
+			float t=(l-410.0)/(475.0-410.0); 
+			r=0.14 -(0.13*t*t); 
+		}else if ((l>=545.0)&&(l<595.0)) {
+			float t=(l-545.0)/(595.0-545.0);
+			r=+(1.98*t)-(t*t);
+		}else if ((l>=595.0)&&(l<650.0)) {
+			float t=(l-595.0)/(650.0-595.0);
+			r=0.98+(0.06*t)-(0.40*t*t);
+		}else if ((l>=650.0)&&(l<700.0)) {
+			float t=(l-650.0)/(700.0-650.0);
+			r=0.65-(0.84*t)+(0.20*t*t);
+		}
+		
+		if ((l>=415.0)&&(l<475.0)) {
+			float t=(l-415.0)/(475.0-415.0);
+			g=+(0.80*t*t); 
+		}else if ((l>=475.0)&&(l<590.0)) {
+			float t=(l-475.0)/(590.0-475.0);
+			g=0.8 +(0.76*t)-(0.80*t*t);
+		}else if ((l>=585.0)&&(l<639.0)) {
+			float t=(l-585.0)/(639.0-585.0);
+			g=0.82-(0.80*t);
+		}
+		
+		if ((l>=400.0)&&(l<475.0)) {
+			float t=(l-400.0)/(475.0-400.0); 
+			b=+(2.20*t)-(1.50*t*t);
+		}else if ((l>=475.0)&&(l<560.0)) {
+			float t=(l-475.0)/(560.0-475.0);
+			b=0.7 -(t)+(0.30*t*t);
+		}
+
+		return float3(r,g,b);
+	}
+
+	float3 KelvinToRGB(float kelvin)
+	{
+		float3 color;
+
+		kelvin = kelvin / 100.0;
+		// Calculate red
+		if (kelvin <= 66.0){
+			color.r = 255.0;
+		}else{
+			color.r = 329.698727446 * pow(kelvin - 60.0, -0.1332047592);
+			color.r = clamp(color.r, 0.0, 255.0);
+		}
+
+		// Calculate green
+		if (kelvin <= 66.0){
+			color.g = 99.4708025861 * log(kelvin) - 161.1195681661;
+		}else{
+			color.g = 288.1221695283 * pow(kelvin - 60.0, -0.0755148492);
+		}
+		color.g = clamp(color.g, 0.0, 255.0);
+
+		// Calculate blue
+		if (kelvin >= 66.0){
+			color.b = 255.0;
+		}else if (kelvin <= 19.0){
+			color.b = 0.0;
+		}else{
+			color.b = 138.5177312231 * log(kelvin - 10.0) - 305.0447927307;
+			color.b = clamp(color.b, 0.0, 255.0);
+		}
+
+		return color / 255.0; // Normalize to 0.0 - 1.0
+	}
+
+	float3 LinearToneMapping(float3 color)
+	{
+		float exposure = 1.0;
+		color = clamp(exposure * color, 0.0, 1.0);
+		return color;
+	}
+
+	float3 SimpleReinhardToneMapping(float3 color)
+	{
+		float exposure = 1.5;
+		color *= exposure / (1.0 + color / exposure);
+		return color;
+	}
+
+	float3 LumaBasedReinhardToneMapping(float3 color)
+	{
+		float3 lumaWeights = float3(0.2126, 0.7152, 0.0722);
+		float luma = dot(color, lumaWeights);
+		float toneMappedLuma = luma / (1.0 + luma);
+		color *= toneMappedLuma / luma;
+		return color;
+	}
+
+	float3 WhitePreservingLumaBasedReinhardToneMapping(float3 color)
+	{
+		float white = 2.0;
+		float3 lumaWeights = float3(0.2126, 0.7152, 0.0722);
+		float luma = dot(color, lumaWeights);
+		float toneMappedLuma = luma * (1.0 + luma / (white * white)) / (1.0 + luma);
+		color *= toneMappedLuma / luma;
+		return color;
+	}
+
+	float3 RomBinDaHouseToneMapping(float3 color)
+	{
+		color = exp(-1.0 / (2.72 * color + 0.15));
+		return color;
+	}
+
+	float3 FilmicToneMapping(float3 color)
+	{
+		color = max(float3(0.0,0.0,0.0), color - float3(0.004,0.004,0.004));
+		color = (color * (6.2 * color + 0.5)) / (color * (6.2 * color + 1.7) + 0.06);
+		return SRGBToLinear(color);
+	}
+
+	float3 Uncharted2ToneMapping(float3 color)
+	{
+		float A = 0.15;
+		float B = 0.50;
+		float C = 0.10;
+		float D = 0.20;
+		float E = 0.02;
+		float F = 0.30;
+		float W = 11.2;
+		float exposure = 2.0;
+		color *= exposure;
+		color = ((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - E / F;
+		float white = ((W * (A * W + C * B) + D * E) / (W * (A * W + B) + D * F)) - E / F;
+		color /= white;
+		return color;
+	}
+
+	// Drago Tone Mapping Operator
+	float DragoToneMapping(float L, float bias) {
+		return log(1.0 + bias * L) / log(1.0 + L);
+	}
+
+	// Tone mapping function for RGB color
+	float3 DragoToneMapping(float3 color, float bias) {
+		// Compute the luminance of the input color
+		float L = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+
+		// Apply Drago tone mapping to the luminance
+		float Ld = DragoToneMapping(L, bias);
+
+		// Preserve color ratios by scaling the input color by the ratio of Ld to L
+		float3 mappedColor = color * (Ld / L);
+
+		return mappedColor;
+	}
+
+	// Ward Tone Mapping Operator
+	float3 WardToneMapping(float3 color) {
+		// Compute the luminance of the input color
+		float L = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+
+		// Apply Ward tone mapping
+		float Ld = L / (1.0 + L);
+
+		// Preserve color ratios
+		float3 mappedColor = color * (Ld / L);
+
+		return mappedColor;
+	}
+
+	// Unreal Tone Mapping Operator
+	float Tonemap_Unreal(float x) {
+		// Apply the Unreal tone mapping formula
+		return (x / (x + 0.155)) * 1.019;
+	}
+
+	// Tone mapping function for RGB color
+	float3 Tonemap_Unreal(float3 color) {
+		// Compute the luminance of the input color
+		float L = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+
+		// Apply the Unreal tone mapping to the luminance
+		float Ld = Tonemap_Unreal(L);
+
+		// Preserve color ratios by scaling the input color by the ratio of Ld to L
+		float3 mappedColor = color * (Ld / L);
+
+		return mappedColor;
+	}
+
+	// Constrast
+
+	// HLSL Bidirectional Contrast Function - Enhance or Reduce Contrast
+	// Works in both directions: positive values sharpen, negative values soften
+
+	// Main contrast function (bidirectional)
+	float3 AdjustContrast(float3 color, float contrast, float brightnessCompensation)
+	{
+		// Contrast range: -1.0 = minimum contrast (flat), 0.0 = no change, 1.0 = maximum contrast
+		// BrightnessCompensation: 0.0 = maintain brightness, 1.0 = boost brightness when increasing contrast
+		
+		// Calculate original luminance
+		float luminance = dot(color, float3(0.299, 0.587, 0.114));
+		
+		// Apply contrast adjustment
+		float contrastFactor = 1.0 + contrast;
+		float3 adjustedColor;
+		
+		if (contrast >= 0.0)
+		{
+			// Increase contrast
+			adjustedColor = saturate(0.5 + contrastFactor * (color - 0.5));
+		}
+		else
+		{
+			// Reduce contrast (blend toward gray)
+			float3 gray = float3(0.5, 0.5, 0.5);
+			adjustedColor = lerp(color, gray, -contrast);
+		}
+		
+		// Brightness preservation/compensation
+		float newLuminance = dot(adjustedColor, float3(0.299, 0.587, 0.114));
+		if (newLuminance > 0.001)
+		{
+			float brightnessFactor = luminance / newLuminance;
+			// Apply compensation based on whether we're increasing or decreasing contrast
+			if (contrast > 0.0)
+			{
+				// When increasing contrast, optionally boost brightness
+				brightnessFactor = lerp(brightnessFactor, brightnessFactor + brightnessCompensation, contrast);
+			}
+			adjustedColor *= brightnessFactor;
+		}
+		
+		return saturate(adjustedColor);
+	}
+
+	// Sigmoid contrast with bidirectional support
+	float3 SigmoidContrast(float3 color, float strength)
+	{
+		// Strength range: -1.0 = flat/no contrast, 0.0 = no change, 1.0 = maximum contrast
+		
+		if (abs(strength) < 0.001) return color; // No change
+		
+		float3 result;
+		
+		if (strength > 0.0)
+		{
+			// Increase contrast with brightness bias
+			float midpoint = 0.4;
+			float slope = 1.0 + strength * 4.0;
+			
+			result.x = 1.0 / (1.0 + exp(-slope * (color.x - midpoint)));
+			result.y = 1.0 / (1.0 + exp(-slope * (color.y - midpoint)));
+			result.z = 1.0 / (1.0 + exp(-slope * (color.z - midpoint)));
+			
+			// Normalize
+			float min_val = 1.0 / (1.0 + exp(slope * midpoint));
+			float max_val = 1.0 / (1.0 + exp(-slope * (1.0 - midpoint)));
+			result = (result - min_val) / (max_val - min_val);
+		}
+		else
+		{
+			// Reduce contrast - blend toward middle gray
+			float blendAmount = -strength;
+			result = lerp(color, float3(0.5, 0.5, 0.5), blendAmount * 0.7);
+		}
+		
+		return saturate(result);
+	}
+
+	// Bidirectional vibrance/saturation adjustment
+	float3 AdjustVibrance(float3 color, float vibrance)
+	{
+		// Vibrance range: -1.0 = grayscale, 0.0 = no change, 1.0 = maximum vibrance
+		
+		float luminance = dot(color, float3(0.299, 0.587, 0.114));
+		float3 gray = float3(luminance, luminance, luminance);
+		
+		// Calculate current saturation
+		float saturation = length(color - gray);
+		
+		if (vibrance > 0.0)
+		{
+			// Increase vibrance (boost less saturated colors more)
+			float saturationBoost = 1.0 + vibrance * (1.0 - saturation);
+			return lerp(gray, color, saturationBoost);
+		}
+		else
+		{
+			// Decrease vibrance/saturation
+			return lerp(gray, color, 1.0 + vibrance);
+		}
+	}
+
+	// Combined bidirectional color adjustment (FIXED)
+	float3 AdjustColorSharpness(float3 color, float intensity)
+	{
+		// Intensity range: -1.0 = maximum softening, 0.0 = no change, 1.0 = maximum sharpening
+		
+		if (abs(intensity) < 0.001) return color; // No change
+		
+		float3 result = color;
+		
+		if (intensity > 0.0)
+		{
+			// Sharpen: increase contrast and vibrance more carefully
+			
+			// First preserve the original luminance
+			float originalLum = dot(color, float3(0.299, 0.587, 0.114));
+			
+			// Apply contrast with reduced intensity
+			result = AdjustContrast(result, intensity * 0.3, intensity * 0.1);
+			
+			// Apply vibrance with better saturation handling
+			result = AdjustVibrance(result, intensity * 0.4);
+			
+			// Ensure we don't oversaturate
+			float newLum = dot(result, float3(0.299, 0.587, 0.114));
+			if (newLum > 0.001)
+			{
+				// Limit the saturation boost to prevent color artifacts
+				float3 gray = float3(newLum, newLum, newLum);
+				float currentSat = length(result - gray);
+				float maxSat = 0.8; // Prevent oversaturation
+				
+				if (currentSat > maxSat)
+				{
+					result = gray + (result - gray) * (maxSat / currentSat);
+				}
+			}
+			
+			// Very subtle highlight adjustment
+			result = pow(abs(result), max(0.95, 1.0 - intensity * 0.05)) * sign(result);
+		}
+		else
+		{
+			// Soften: reduce contrast and vibrance
+			float soften = -intensity;
+			result = AdjustContrast(result, -soften * 0.4, 0.0);
+			result = AdjustVibrance(result, -soften * 0.5);
+			// Subtle midtone lift for softer appearance
+			result = pow(abs(result), 1.0 - soften * 0.05) * sign(result);
+		}
+		
+		return saturate(result);
+	}
+
+
+	// Advanced contrast curve adjustment
+	float3 ContrastCurve(float3 color, float contrast, float pivot)
+	{
+		// Contrast: -1.0 to 1.0, Pivot: 0.0 to 1.0 (default 0.5)
+		// Adjusts contrast around a pivot point
+		
+		float3 result;
+		
+		if (contrast > 0.0)
+		{
+			// S-curve for contrast increase
+			float slope = 1.0 + contrast * 2.0;
+			result = pivot + (color - pivot) * slope;
+		}
+		else
+		{
+			// Inverse S-curve for contrast decrease
+			float slope = 1.0 / (1.0 - contrast);
+			result = pivot + (color - pivot) / slope;
+		}
+		
+		return saturate(result);
+	}
+
+	// Histogram-based contrast adjustment (preserves overall distribution)
+	float3 HistogramContrast(float3 color, float amount)
+	{
+		// Amount: -1.0 to 1.0
+		// This method better preserves the overall brightness distribution
+		
+		float luminance = dot(color, float3(0.299, 0.587, 0.114));
+		
+		// Define contrast curve based on luminance zones
+		float shadow = smoothstep(0.0, 0.3, luminance);
+		float midtone = 1.0 - abs(luminance - 0.5) * 2.0;
+		float highlight = smoothstep(0.7, 1.0, luminance);
+		
+		float3 result = color;
+		
+		if (amount > 0.0)
+		{
+			// Increase contrast: darken shadows, brighten highlights
+			result *= 1.0 + amount * highlight * 0.3;
+			result *= 1.0 - amount * (1.0 - shadow) * 0.2;
+		}
+		else
+		{
+			// Decrease contrast: lift shadows, compress highlights
+			float compress = -amount;
+			result = result * (1.0 - compress * 0.3) + compress * 0.3;
+		}
+		
+		return saturate(result);
+	}
+
+	// Specialized softening filter (negative contrast with pleasing results)
+	float3 SoftenImage(float3 color, float amount)
+	{
+		// Amount: 0.0 = no change, 1.0 = maximum softening
+		
+		// Reduce local contrast
+		float3 softened = AdjustContrast(color, -amount * 0.6, 0.0);
+		
+		// Slight desaturation for film-like softness
+		softened = AdjustVibrance(softened, -amount * 0.3);
+		
+		// Lift shadows slightly for softer look
+		softened = pow(softened, 1.0 - amount * 0.1);
+		
+		// Blend with slight blur simulation (fake glow)
+		float3 glow = pow(softened, 2.2) * 1.2;
+		softened = lerp(softened, glow, amount * 0.1);
+		
+		return saturate(softened);
+	}
+};

@@ -1,0 +1,353 @@
+shader FuseCoreMath{
+
+	float maxComponent(float theValue){
+		return theValue;
+	}
+
+	float maxComponent(float2 theValue){
+		return max(theValue.x, theValue.y);
+	}
+
+	float maxComponent(float3 theValue){
+		return max(max(theValue.x, theValue.y), theValue.z);
+	}
+
+	float maxComponent(float4 theValue){
+		return max(max(theValue.x, theValue.y),max(theValue.z, theValue.w));
+	}
+
+	float sumComponent(float theValue){
+		return theValue;
+	}
+
+	float sumComponent(float2 theValue){
+		return theValue.x + theValue.y;
+	}
+
+	float sumComponent(float3 theValue){
+		return theValue + theValue.y + theValue.z;
+	}
+
+	float sumComponent(float4 theValue){
+		return theValue + theValue.y + theValue.z + theValue.w;
+	}
+	
+	float minComponent(float theValue)
+	{
+		return theValue;
+	}
+
+	float minComponent(float2 theValue)
+	{
+		return min(theValue.x, theValue.y);
+	}
+
+	float minComponent(float3 theValue)
+	{
+		return min(min(theValue.x, theValue.y), theValue.z);
+	}
+
+	float minComponent(float4 theValue)
+	{
+		return min(min(theValue.x, theValue.y),min(theValue.z, theValue.w));
+	}
+
+	////////////////////////////////////////////////////////////////
+	//
+	// CHECK NAN
+	//
+	////////////////////////////////////////////////////////////////
+
+	bool IsNaN(float x)
+	{
+		return (asuint(x) & 0x7fffffff) > 0x7f800000;
+	}
+
+	bool IsNaN(float2 x)
+	{
+		return (asuint(x) & 0x7fffffff) > 0x7f800000;
+	}
+
+	bool IsNaN(float3 x)
+	{
+		return (asuint(x) & 0x7fffffff) > 0x7f800000;
+	}
+
+	bool IsNaN(float4 x)
+	{
+		return (asuint(x) & 0x7fffffff) > 0x7f800000;
+	}
+
+	////////////////////////////////////////////////////////////////
+	//
+	//             Constants
+	//
+	////////////////////////////////////////////////////////////////
+
+
+	static const float PI = 3.1415926535897;
+
+	static const float INVPI = 0.31830988618;
+
+	static const float HALFPI = 1.57079632679;
+
+	static const float TWOPI = 6.28318531;
+
+	static const float TAU = (2*PI);
+
+	static const float FOUR_PI = 12.56637061436;
+
+	static const float PHI = 1.6180339887498;
+
+	static const float FLOATMIN = 1.175494351e-38; 
+	// Minimum representable positive floating-point number
+
+
+
+	static const float FLOATMAX = 3.402823466e+38;
+	// Maximum representable floating-point number
+
+
+	////////////////////////////////////////////////////////////////
+	//
+	//             Safe pow functions
+	//
+	////////////////////////////////////////////////////////////////
+
+	float pows(float a, float b) {return pow(abs(a),b)*sign(a);}
+	float2 pows(float a, float2 b) {return pow(abs(a),b)*sign(a);}
+	float3 pows(float a, float3 b) {return pow(abs(a),b)*sign(a);}
+	float4 pows(float a, float4 b) {return pow(abs(a),b)*sign(a);}
+
+	float2 pows(float2 a, float b) {return pow(abs(a),b)*sign(a);}
+	float2 pows(float2 a, float2 b) {return pow(abs(a),b)*sign(a);}
+
+	float3 pows(float3 a, float b) {return pow(abs(a),b)*sign(a);}
+	float3 pows(float3 a, float3 b) {return pow(abs(a),b)*sign(a);}
+
+	float4 pows(float4 a, float b) {return pow(abs(a),b)*sign(a);}
+	float4 pows(float4 a, float4 b) {return pow(abs(a),b)*sign(a);}
+
+
+	////////////////////////////////////////////////////////////////
+	//
+	//             HELPER FUNCTIONS
+	//
+	////////////////////////////////////////////////////////////////
+
+	// Sign function that doesn't return 0
+	float sgn(float x) 
+	{
+		return (x<0)?-1:1;
+	}
+
+	float2 sgn(float2 v) 
+	{
+		return float2((v.x<0)?-1:1, (v.y<0)?-1:1);
+	}
+
+	float square (float x) 
+	{
+		return x*x;
+	}
+
+	float2 square (float2 x) 
+	{
+		return x*x;
+	}
+
+	float3 square (float3 x) 
+	{
+		return x*x;
+	}
+
+	float lengthSqr(float3 x) 
+	{
+		return dot(x, x);
+	}
+
+	float dot2( in float3 v ) { return dot(v,v); }
+
+	// glsl style mod
+	#ifndef mod
+	#define mod(x, y) (x - y * floor((x) / y))
+	#endif
+
+	// Function to compute an approximation of the square root using the Quake III Fast Inverse Square Root algorithm
+	float fastSqrt(float x) {
+		// Approximate the inverse square root (1/sqrt(x))
+		float halfX = 0.5f * x;
+		int i = asint(x);            // Interpret the float bits as an integer
+		i = 0x5f3759df - (i >> 1);   // Initial approximation of the inverse square root
+		float y = asfloat(i);        // Convert the bits back to a float
+		y = y * (1.5f - (halfX * y * y)); // First iteration of Newton-Raphson method
+		//y = y * (1.5f - (halfX * y * y)); // Second iteration (optional, can be omitted for higher speed)
+
+		// Multiply by x to get the approximation of sqrt(x)
+		return x * y;
+	}
+
+	float2 fastSqrt(float2 x) {
+		float2 halfX = 0.5f * x;
+		int2 i = asint(x);             // Interpret the float bits as integers
+		i = 0x5f3759df - (i >> 1);     // Initial approximation of the inverse square root
+		float2 y = asfloat(i);         // Convert the bits back to floats
+		y = y * (1.5f - (halfX * y * y)); // First iteration of Newton-Raphson method
+
+		// Multiply by x to get the approximation of sqrt(x)
+		return x * y;
+	}
+
+	float3 fastSqrt(float3 x) {
+		float3 halfX = 0.5f * x;
+		int3 i = asint(x);             // Interpret the float bits as integers
+		i = 0x5f3759df - (i >> 1);     // Initial approximation of the inverse square root
+		float3 y = asfloat(i);         // Convert the bits back to floats
+		y = y * (1.5f - (halfX * y * y)); // First iteration of Newton-Raphson method
+
+		// Multiply by x to get the approximation of sqrt(x)
+		return x * y;
+	}
+
+	float4 fastSqrt(float4 x) {
+		float4 halfX = 0.5f * x;
+		int4 i = asint(x);             // Interpret the float bits as integers
+		i = 0x5f3759df - (i >> 1);     // Initial approximation of the inverse square root
+		float4 y = asfloat(i);         // Convert the bits back to floats
+		y = y * (1.5f - (halfX * y * y)); // First iteration of Newton-Raphson method
+
+		// Multiply by x to get the approximation of sqrt(x)
+		return x * y;
+	}
+
+	float3 FibonacciSpherePoint(int i, int numPoints, float radius){
+		// Define phi (golden angle) as a constant
+		const float phi = 3.14159265359 * (3.0 - sqrt(5.0));  // PI * (3 - sqrt(5))
+
+		// Calculate y, which is the vertical position of the point along the sphere's axis (from 1 to -1)
+		float y = 1.0 - (i / (float)(numPoints - 1)) * 2.0;  // y goes from 1 to -1
+
+		// Calculate the radius of the circle at the current y position
+		float radiusAtY = sqrt(1.0 - y * y);  // radius at the current height (x^2 + z^2 = 1 - y^2)
+
+		// Compute the angle theta by multiplying the index by the golden angle phi
+		float theta = phi * i;
+
+		// Compute the x and z coordinates for the point
+		float x = cos(theta) * radiusAtY;
+		float z = sin(theta) * radiusAtY;
+
+		// Return the 3D point on the surface of the sphere, scaled by the given radius
+		return float3(x, y, z) * radius;
+	}
+
+	uint FloatToSortableUint(float f)
+	{
+		// Reinterpret float bits as uint
+		uint x = asuint(f);
+
+		// Extract the sign bit (1 => negative, 0 => nonnegative)
+		uint sign = x & 0x80000000;
+
+		// Flip either all bits (if negative) or just the sign bit (if positive)
+		// so that negative floats sort before positive ones in ascending order.
+		uint mask = (sign != 0) ? 0xFFFFFFFF : 0x80000000;
+		x ^= mask;
+
+		return x;
+	}
+
+	float3 ClosestPointOnBox(float3 pos, float3 boxCenter, float3 boxSize, out float3 normal) {
+		float3 halfSize = boxSize * 0.5;
+		float3 localPos = pos - boxCenter;
+		
+		// Get the distance to each face by computing the difference between
+		// the local position and the half size for each axis
+		float3 d = abs(localPos) - halfSize;
+		
+		if (all(d <= 0)) {
+			// Inside box - find closest face by comparing distances
+			float3 d2 = halfSize - abs(localPos);
+			
+			// Find which component has minimum distance
+			int3 comp = (d2.x <= d2.y && d2.x <= d2.z) ? int3(1,0,0) :
+					(d2.y <= d2.x && d2.y <= d2.z) ? int3(0,1,0) :
+													int3(0,0,1);
+			
+			// Set normal based on selected component
+			normal = float3(
+				comp.x * sign(localPos.x),
+				comp.y * sign(localPos.y),
+				comp.z * sign(localPos.z)
+			);
+			
+			// Project to closest face
+			localPos = lerp(localPos, halfSize * sign(localPos), comp);
+			return localPos + boxCenter;
+		}
+		else {
+			// Outside box - clamp to bounds
+			float3 clamped = clamp(localPos, -halfSize, halfSize);
+			float3 delta = localPos - clamped;
+			float3 absDelta = abs(delta);
+			
+			// Find component with maximum deviation
+			int3 comp = (absDelta.x >= absDelta.y && absDelta.x >= absDelta.z) ? int3(1,0,0) :
+					(absDelta.y >= absDelta.x && absDelta.y >= absDelta.z) ? int3(0,1,0) :
+																			int3(0,0,1);
+			
+			// Set normal based on selected component
+			normal = float3(
+				comp.x * sign(delta.x),
+				comp.y * sign(delta.y),
+				comp.z * sign(delta.z)
+			);
+			
+			return clamped + boxCenter;
+		}
+	}
+
+	float3 ClosestPointOnBoxLayers(float3 pos, float3 boxCenter, float3 baseBoxSize, float3 space, out float3 normal, out int layer) {
+		// Transform position into the box's local space.
+		float3 localPos = pos - boxCenter;
+		float3 baseHalfSize = baseBoxSize * 0.5;
+		float3 absLocalPos = abs(localPos);
+		
+		// Compute extra distance beyond the base box boundaries.
+		float3 delta = max(abs(localPos) - baseHalfSize, 0); // extra distance per axis
+		float3 layersNeeded = delta / space;                   // per-axis layer requirement
+		layer = (int)round(max(max(layersNeeded.x, layersNeeded.y), layersNeeded.z));
+		float3 targetHalfSize = baseHalfSize + layer * space;
+		
+		// Clamp the point to the candidate box.
+		float3 clamped = clamp(localPos, -targetHalfSize, targetHalfSize);
+		
+		// Determine normal.
+		if (all(clamped == localPos)) {
+			// Point is inside the candidate box—push out to the nearest face.
+			float3 distToFace = targetHalfSize - absLocalPos;
+			if (distToFace.x < distToFace.y && distToFace.x < distToFace.z) {
+				normal = float3(sign(localPos.x), 0, 0);
+				clamped.x = targetHalfSize.x * sign(localPos.x);
+			} else if (distToFace.y < distToFace.z) {
+				normal = float3(0, sign(localPos.y), 0);
+				clamped.y = targetHalfSize.y * sign(localPos.y);
+			} else {
+				normal = float3(0, 0, sign(localPos.z));
+				clamped.z = targetHalfSize.z * sign(localPos.z);
+			}
+		} else {
+			// Point is outside: choose the axis with the largest deviation.
+			float3 diff = localPos - clamped;
+			float3 absDiff = abs(diff);
+			if (absDiff.x >= absDiff.y && absDiff.x >= absDiff.z)
+				normal = float3(sign(diff.x), 0, 0);
+			else if (absDiff.y >= absDiff.z)
+				normal = float3(0, sign(diff.y), 0);
+			else
+				normal = float3(0, 0, sign(diff.z));
+		}
+		
+		return clamped + boxCenter;
+	}
+};

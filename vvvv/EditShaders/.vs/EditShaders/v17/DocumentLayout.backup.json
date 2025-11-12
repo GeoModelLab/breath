@@ -1,0 +1,36 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\REPO\\VL.Fuse\\vl\\EditShaders\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A6E4858A-CDF7-4384-8FF3-3CFE59E8EEC4}|EditShaders.csproj|c:\\repo\\vl.fuse\\vl\\shaders\\fusesdfbakesdf_computefx.sdsl||{8B382828-6202-11D1-8870-0000F87579D2}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "FuseSDFBakeSDF_ComputeFX.sdsl",
+              "DocumentMoniker": "C:\\REPO\\VL.Fuse\\vl\\shaders\\FuseSDFBakeSDF_ComputeFX.sdsl",
+              "RelativeDocumentMoniker": "..\\shaders\\FuseSDFBakeSDF_ComputeFX.sdsl",
+              "ToolTip": "C:\\REPO\\VL.Fuse\\vl\\shaders\\FuseSDFBakeSDF_ComputeFX.sdsl",
+              "RelativeToolTip": "..\\shaders\\FuseSDFBakeSDF_ComputeFX.sdsl",
+              "ViewState": "AQIAACAAAAAAAAAAAAAkwDsAAAAtAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2024-04-18T10:15:11.858Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
