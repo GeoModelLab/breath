@@ -24,8 +24,7 @@ namespace source.data
         //instance of the parameter class for growing season
         public parVegetationIndex parVegetationIndex = new parVegetationIndex();
         //instance of the parameter class for photosynthesis
-        public parPhotosynthesis parPhotosynthesis = new parPhotosynthesis();
-        public parRespiration parRespiration = new parRespiration();
+        public parExchanges parExchanges = new parExchanges();
     }
 
     public class parDormancyInduction
@@ -92,6 +91,8 @@ namespace source.data
         public float maximumTemperature { get; set; } //°C
         //critical threshold for growth phase completion
         public float thermalThreshold { get; set; } //photothermal units
+
+
     }
 
     public class parSenescence
@@ -112,6 +113,7 @@ namespace source.data
         public float notLimitingTemperature { get; set; } //°C
 
     }
+
     public class parGreendown
     {
         //threhsold of thermal time during the greendown phase
@@ -136,12 +138,14 @@ namespace source.data
         public float maximumVI { get; set; } //NDVI, unitless
     }
 
-    public class parPhotosynthesis
+    public class parExchanges
     {
         public float pixelTemperatureShift { get; set; } //°C
 
         //maximum quantum yield
-        public float maximumQuantumYieldOver{ get; set; } //μmol CO2​ per μmol photons
+        public float leafLength { get; set; } //μmol CO2​ per μmol photons
+        public float absorptionCoefficient { get; set; }
+        public float maximumQuantumYieldTree{ get; set; } //μmol CO2​ per μmol photons
         public float maximumQuantumYieldUnder { get; set; } //μmol CO2​ per μmol photons
 
         //minimum temperature for photosynthesis
@@ -166,25 +170,24 @@ namespace source.data
         public float waterStressSensitivity { get; set; } //days
         public float growthPhenologyScalingFactor { get; set; } //unitless
         public float  LightExtinctionCoefficient { get; set; }
-    }
+        public float declinePhenologyScalingFactor { get; set; } //unitless
 
-
-    public class parRespiration
-    {
         //respiration
-        public float activationEnergyParameterSoil { get; set; } //K
-        public float activationEnergyParameterOver { get; set; } //K
-        public float activationEnergyParameterUnder { get; set; } //K
+        //activation energy parameter
+        public float activationEnergyReco { get; set; } //K
+        //soil moisture threshold for respiration
+        public float soilMoistureThreshold { get; set; } //K
         //minimum temperature for photosynthesis
-        public float referenceRespirationSoil{ get; set; } //micromoles m-2 s-1
-        public float referenceRespirationOver { get; set; } //micromoles m-2 s-1
-        public float referenceRespirationUnder { get; set; } //micromoles m-2 s-1
+        public float referenceRespiration { get; set; } //micromoles m-2 s-1
+        //public float referenceRespirationUnder { get; set; } //micromoles m-2 s-1
         //response of the ecosystem respiration to GPP
-        public float respirationResponseOver { get; set; } //unitless
-        public float respirationResponseUnder { get; set; } //unitless
-        public float respirationAgingFactor { get; set; } //unitless
+        public float respirationGPPresponseOver { get; set; } //unitless
+        public float respirationGPPresponseUnder { get; set; } //unitless                  
 
-        public float respirationSmoothingFactor { get; set; } //unitless
+        public float respirationAgingFactor { get; set; } //days
+        public float parRespSmoothing { get; set; } //days
+
+        public float nightSensitivityScale { get; set; } //days
     }
 
   

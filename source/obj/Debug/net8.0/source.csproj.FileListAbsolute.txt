@@ -1,69 +1,12 @@
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\bin\Debug\net8.0\source.deps.json
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\bin\Debug\net8.0\source.dll
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\bin\Debug\net8.0\source.pdb
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\obj\Debug\net8.0\source.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\obj\Debug\net8.0\source.AssemblyInfoInputs.cache
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\obj\Debug\net8.0\source.AssemblyInfo.cs
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\obj\Debug\net8.0\source.csproj.CoreCompileInputs.cache
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\obj\Debug\net8.0\source.sourcelink.json
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\obj\Debug\net8.0\source.dll
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\obj\Debug\net8.0\refint\source.dll
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\obj\Debug\net8.0\source.pdb
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\swell\code\source\obj\Debug\net8.0\ref\source.dll
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\bin\Debug\net8.0\source.deps.json
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\bin\Debug\net8.0\source.dll
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\bin\Debug\net8.0\source.pdb
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\obj\Debug\net8.0\source.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\obj\Debug\net8.0\source.AssemblyInfoInputs.cache
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\obj\Debug\net8.0\source.AssemblyInfo.cs
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\obj\Debug\net8.0\source.csproj.CoreCompileInputs.cache
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\obj\Debug\net8.0\source.sourcelink.json
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\obj\Debug\net8.0\source.dll
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\obj\Debug\net8.0\refint\source.dll
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\obj\Debug\net8.0\source.pdb
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\SWELL\src\source\obj\Debug\net8.0\ref\source.dll
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\breath\src\source\bin\Debug\net8.0\source.deps.json
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\breath\src\source\bin\Debug\net8.0\source.dll
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\breath\src\source\bin\Debug\net8.0\source.pdb
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\breath\src\source\obj\Debug\net8.0\source.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\breath\src\source\obj\Debug\net8.0\source.AssemblyInfoInputs.cache
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\breath\src\source\obj\Debug\net8.0\source.AssemblyInfo.cs
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\breath\src\source\obj\Debug\net8.0\source.csproj.CoreCompileInputs.cache
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\breath\src\source\obj\Debug\net8.0\source.dll
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\breath\src\source\obj\Debug\net8.0\refint\source.dll
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\breath\src\source\obj\Debug\net8.0\source.pdb
-C:\Users\simoneugomaria.brega\OneDrive - CREA\Documenti\git\breath\src\source\obj\Debug\net8.0\ref\source.dll
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath_updated\src\source\bin\Debug\net8.0\source.deps.json
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath_updated\src\source\bin\Debug\net8.0\source.dll
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath_updated\src\source\bin\Debug\net8.0\source.pdb
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath_updated\src\source\obj\Debug\net8.0\source.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath_updated\src\source\obj\Debug\net8.0\source.AssemblyInfoInputs.cache
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath_updated\src\source\obj\Debug\net8.0\source.AssemblyInfo.cs
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath_updated\src\source\obj\Debug\net8.0\source.csproj.CoreCompileInputs.cache
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath_updated\src\source\obj\Debug\net8.0\source.dll
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath_updated\src\source\obj\Debug\net8.0\refint\source.dll
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath_updated\src\source\obj\Debug\net8.0\source.pdb
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath_updated\src\source\obj\Debug\net8.0\ref\source.dll
-C:\Users\simone\projects\breath\src\source\bin\Debug\net8.0\source.deps.json
-C:\Users\simone\projects\breath\src\source\bin\Debug\net8.0\source.dll
-C:\Users\simone\projects\breath\src\source\bin\Debug\net8.0\source.pdb
-C:\Users\simone\projects\breath\src\source\obj\Debug\net8.0\source.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\simone\projects\breath\src\source\obj\Debug\net8.0\source.AssemblyInfoInputs.cache
-C:\Users\simone\projects\breath\src\source\obj\Debug\net8.0\source.AssemblyInfo.cs
-C:\Users\simone\projects\breath\src\source\obj\Debug\net8.0\source.csproj.CoreCompileInputs.cache
-C:\Users\simone\projects\breath\src\source\obj\Debug\net8.0\source.dll
-C:\Users\simone\projects\breath\src\source\obj\Debug\net8.0\refint\source.dll
-C:\Users\simone\projects\breath\src\source\obj\Debug\net8.0\source.pdb
-C:\Users\simone\projects\breath\src\source\obj\Debug\net8.0\ref\source.dll
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\bin\Debug\net8.0\source.deps.json
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\bin\Debug\net8.0\source.dll
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\bin\Debug\net8.0\source.pdb
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\obj\Debug\net8.0\source.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\obj\Debug\net8.0\source.AssemblyInfoInputs.cache
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\obj\Debug\net8.0\source.AssemblyInfo.cs
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\obj\Debug\net8.0\source.csproj.CoreCompileInputs.cache
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\obj\Debug\net8.0\source.sourcelink.json
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\obj\Debug\net8.0\source.dll
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\obj\Debug\net8.0\refint\source.dll
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\obj\Debug\net8.0\source.pdb
-C:\Users\Administrator\OneDrive - CREA\Documenti\git\breath\source\obj\Debug\net8.0\ref\source.dll
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\bin\Debug\net8.0\source.deps.json
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\bin\Debug\net8.0\source.dll
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\bin\Debug\net8.0\source.pdb
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\source.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\source.AssemblyInfoInputs.cache
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\source.AssemblyInfo.cs
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\source.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\source.sourcelink.json
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\source.dll
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\refint\source.dll
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\source.pdb
+C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\ref\source.dll

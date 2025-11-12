@@ -2,8 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+	<EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="data\parameters_ok.cs" />
+    <Compile Remove="utils_old.cs" />
+  </ItemGroup>
 
 </Project>

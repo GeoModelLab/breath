@@ -79,17 +79,13 @@ namespace source.functions
             return input.radData;
         }
 
-        public static (float LAIoverstory, float LAIunderstory, float EVIoverstory, float EVIunderstory) estimateLAI(output outputT,
-            output outputT1)
+        public static (float LAIoverstory, float LAIunderstory, float EVIoverstory, float EVIunderstory) estimateLAI(output outputT1)
         {
             //estimate EVI of the overstory
             float EVIoverstory;
             float EVIunderstory;
             float LAIoverstory = 0;
             float LAIunderstory = 0;
-
-            
-
             if (outputT1.phenoCode < 3)
             {
                 EVIoverstory = 0;
@@ -98,11 +94,9 @@ namespace source.functions
             }
             else
             {
-                float deltaVi = (outputT1.vi - outputT.vi) / 100;
                 EVIoverstory = outputT1.vi / 100 - outputT1.viAtGrowth;
                 LAIoverstory = 9.41F * outputT1.vi / 100 - 1.67F;
-                EVIunderstory = Math.Min(outputT.exchanges.EVIunderstory + deltaVi * (1-outputT.exchanges.vegetationCover),
-                    outputT1.vi/100);
+                EVIunderstory = outputT1.viAtGrowth;
             }
 
             //estimate LAI overstory (https://doi.org/10.1016/j.agrformet.2012.09.003)
@@ -395,12 +389,11 @@ namespace source.functions
             float waterAvailability = 0;
             float waterStress = 0;
 
-            outputT1.exchanges.PrecipitationMemory.Add(input.precipitationH[hour]);
-            outputT1.exchanges.ET0memory.Add(input.referenceET0H[hour]);
-
+            outputT1.exchanges.PrecipitationMemory.Add(input.hourlyData.precipitation[hour]);
+            outputT1.exchanges.ET0memory.Add(input.hourlyData.referenceET0[hour]);
 
             if (outputT1.exchanges.PrecipitationMemory.Count <
-                (int)parameters.parPhotosynthesis.waterStressDays * 24)
+                (int)parameters.parExchanges.waterStressDays * 24)
             {
                 waterAvailability = 1;
                 waterStress = 1;
@@ -426,20 +419,20 @@ namespace source.functions
                 }
 
                 //compute water stress GPP
-                if (waterAvailability >= parameters.parPhotosynthesis.waterStressThreshold)
+                if (waterAvailability >= parameters.parExchanges.waterStressThreshold)
                 {
                     waterStress = 1;
                 }
                 else
                 {
-                    waterStress = parameters.parPhotosynthesis.waterStressSensitivity *
-                        (waterAvailability - parameters.parPhotosynthesis.waterStressThreshold) + 1;
+                    waterStress = parameters.parExchanges.waterStressSensitivity *
+                        (waterAvailability - parameters.parExchanges.waterStressThreshold) + 1;
                 }
                
 
 
                 //remove when the memory effect ends
-                if (outputT1.exchanges.ET0memory.Count == (int)parameters.parPhotosynthesis.waterStressDays * 24)
+                if (outputT1.exchanges.ET0memory.Count == (int)parameters.parExchanges.waterStressDays * 24)
                 {
                     outputT1.exchanges.ET0memory.RemoveAt(0);
                     outputT1.exchanges.PrecipitationMemory.RemoveAt(0);
@@ -453,7 +446,6 @@ namespace source.functions
                 waterStress = 0;
             }
 
-
             return (waterStress);
         }
 
@@ -461,38 +453,38 @@ namespace source.functions
         {
             float tScale = 0;
 
+            //if (temperature < tmin)
+            //{
+            //    tScale = 0;
+            //}
+            //else
+            //{
+            //    float numerator = (temperature - tmin) *
+            //        (temperature - tmax);
+
+            //    float denominator = numerator -
+            //        (float)Math.Pow((temperature - topt), 2);
+
+            //    tScale = numerator / denominator;
+            //}
+
+
+
+            //if average temperature is below minimum or above maximum
             if (temperature < tmin || temperature > tmax)
             {
                 tScale = 0;
             }
             else
             {
-                float numerator = (temperature - tmin) *
-                    (temperature - tmax);
+                //intermediate computations
+                float firstTerm = (tmax - temperature) / (tmax - topt);
+                float secondTerm = (temperature - tmin) / (topt - tmin);
+                float Exponential = (topt - tmin) / (tmax - topt);
 
-                float denominator = numerator -
-                    (float)Math.Pow((temperature - topt), 2);
-
-                tScale = numerator / denominator;
+                //compute forcing rate
+                tScale = (float)(firstTerm * Math.Pow(secondTerm, Exponential));
             }
-
-
-
-            ////if average temperature is below minimum or above maximum
-            //if (temperature < tmin || temperature > tmax)
-            //{
-            //    tScale = 0;
-            //}
-            //else
-            //{
-            //    //intermediate computations
-            //    float firstTerm = (tmax - temperature) / (tmax - topt);
-            //    float secondTerm = (temperature - tmin) / (topt - tmin);
-            //    float Exponential = (topt - tmin) / (tmax - topt);
-
-            //    //compute forcing rate
-            //    tScale = (float)(firstTerm * Math.Pow(secondTerm, Exponential));
-            //}
 
             return tScale;
         }
@@ -511,7 +503,7 @@ namespace source.functions
             if (outputsT1.phenoCode == 3)
             {
                 float leafActivity = 1 / (1 + (float)Math.Exp(3 *
-                    (parameters.parPhotosynthesis.growthPhenologyScalingFactor - outputsT1.growthPercentage / 100)));
+                    (parameters.parExchanges.growthPhenologyScalingFactor - outputsT1.growthPercentage / 100)));
                 phenologyScale = leafActivity;
             }
             else if (outputsT1.phenoCode == 5)
@@ -535,9 +527,9 @@ namespace source.functions
 
         public static float VPDfunction(float vpd, parameters parameters)
         {
-            float vpdMin = parameters.parPhotosynthesis.vpdMin;
-            float vpdMax = parameters.parPhotosynthesis.vpdMax;
-            float kVPD = parameters.parPhotosynthesis.vpdSensitivity;
+            float vpdMin = parameters.parExchanges.vpdMin;
+            float vpdMax = parameters.parExchanges.vpdMax;
+            float kVPD = parameters.parExchanges.vpdSensitivity;
 
 
             if (vpd < vpdMin)
@@ -553,92 +545,30 @@ namespace source.functions
             }
         }
 
-        public static float ComputeTscaleReco(float temperature, float activatonEnergyParameter)
+        public static float temperatureRecoFunction(float temperature, parameters parameters)
         {
-            const float Tref = 288.15f;  // reference temperature [K]  (15 °C)
-            const float T0 = 227.13f;  // temperature offset [K]  (-46.02 °C)
-
-            // --- convert to Kelvin
-            float TK = 273.15f + temperature;
-
-            // --- numerical and physical safeguards ---
-            // below -45 °C the Lloyd-Taylor formula becomes unstable
-            if (TK <= (T0 + 0.5f))
-                return 0f;  // respiration effectively zero (or clamp to minimal value)
-
-            // avoid division by zero or extremely small denominators
-            float denom1 = Tref - T0;
-            float denom2 = TK - T0;
-
-            if (denom1 < 1e-6f || denom2 < 1e-6f)
-                return 0f;
-
-            // --- compute exponential term safely ---
-            float exponent = activatonEnergyParameter *
-                             ((1f / denom1) - (1f / denom2));
-
-            // clamp exponent to prevent overflow in Math.Exp
-            if (exponent > 50f) exponent = 50f;   // e^50 ≈ 3.0e21
-            if (exponent < -50f) exponent = -50f; // e^-50 ≈ 1.9e-22
-
-            float Tscale = (float)Math.Exp(exponent);
-
-            // optional: limit scaling to reasonable physiological range
-            if (Tscale > 10f) Tscale = 10f;
-            if (Tscale < 0f) Tscale = 0f;
-
-            return Tscale;
+            const float Tref = 288.15F;
+            const float T0 = 227.13F;
+            return (float)Math.Exp(parameters.parExchanges.activationEnergyReco *
+                ((1 / (Tref - T0)) - (1 / ((273.15 + temperature) - T0))));
         }
 
-        public static float gppRecoUnderFunction(input input, float PARintercept, float gpp, output outputs1, parameters parameters, int hour)
+        public static float gppRecoFunction(input input, float gppOver, float gppUnder, 
+            float PARscaleOverstory, float PARscaleUnderstory,
+            output outputs1, parameters parameters)
         {
             float gppRecoFunction = 0;
-
-            float respirationReference = parameters.parRespiration.referenceRespirationUnder;
-            float PARrecoFunction = 1;// PARRECOfunction(PARintercept, parameters.parExchanges.respirationHalfSaturationUnder, hour, input);
             //compute function
-            gppRecoFunction = respirationReference +
-                parameters.parRespiration.respirationResponseUnder * (PARrecoFunction) * gpp;
+            gppRecoFunction = parameters.parExchanges.referenceRespiration +
+                (parameters.parExchanges.respirationGPPresponseOver * gppOver  * RecoRespirationFunction(input,outputs1,parameters)) +
+                (parameters.parExchanges.respirationGPPresponseUnder * gppUnder);
 
             return gppRecoFunction;
         }
-
-        public static float gppRecoTreeFunction(input input, float PARintercept, float gpp, output outputT, output outputs1,
-            parameters parameters, int hour)
-        {
-            float gppRecoFunction = 0;
-            float recoModifier = RecoRespirationFunction(input, outputs1, parameters);
-
-            float respirationReference = parameters.parRespiration.referenceRespirationOver;
-            float PARrecoFunction = 1;// PARRECOfunction(PARintercept, parameters.parExchanges.respirationHalfSaturationOver, hour, input);
-            //compute function
-            if (outputs1.phenoCode < 3)
-            {
-                gppRecoFunction = 0;
-            }
-            else
-            {
-                gppRecoFunction = respirationReference +
-                        (parameters.parRespiration.respirationResponseOver * (PARrecoFunction)) * gpp;
-            }
-
-            return gppRecoFunction;
-        }
-
-        public static float PARRECOfunction(float par, float halfSaturation, int hour, input input)
-        {
-
-            float parScaleRECO = 1 / (1 + (par / halfSaturation));
-
-            return parScaleRECO;
-
-
-        }
-
 
         public static float RecoRespirationFunction(input input, output outputsT1, parameters parameters)
         {
-            float recoReferenceFunction = 0;// parameters.parExchanges.respirationMinimumFactor;
+            float recoReferenceFunction = 0;
 
             float growingSeasonPercentage = 0;
             float growingSeasonTotal = parameters.parGrowth.thermalThreshold +
@@ -660,27 +590,197 @@ namespace source.functions
                      outputsT1.decline.declineState) / growingSeasonTotal;
             }
 
-
             if (outputsT1.phenoCode >= 3)
             {
-
                 recoReferenceFunction = 1 / (1 + (float)Math.Exp(10 * (growingSeasonPercentage -
-                     parameters.parRespiration.respirationAgingFactor)));
+                     parameters.parExchanges.respirationAgingFactor)));
             }
-
 
             if (outputsT1.phenoCode < 3)
             {
-                recoReferenceFunction = 0;// parameters.parExchanges.respirationMinimumFactor;
+                recoReferenceFunction = 0;
             }
 
             return recoReferenceFunction;
         }
 
 
+        #endregion
+
+        #region leaf temperature model
+
+        private static (float leafWaterVD, float airWaterVD) VaporDensity(float Tair, float TairMax)
+        {
+            float leafWaterVD = 5.018F + (0.32321F * Tair) + (0.0081847F * Tair * Tair) + (0.00031243F * Tair * Tair * Tair);
+            float airWaterVD = 5.018F + (0.32321F * TairMax) + (0.0081847F * TairMax * TairMax) + (0.00031243F * TairMax * TairMax * TairMax);
+
+            return (leafWaterVD, airWaterVD);
+        }
+
+        private static (float BoundaryLayerWidth, float BoundaryLayerResistance) BoundaryLayerResistanceWaterVapor(float WindSpeed, float LeafLength,
+            float LeafShapeParam, float DiffusionCoefficient)
+        {
+            float BoundaryLayerWidth = LeafShapeParam * (float)(Math.Pow((LeafLength / WindSpeed), 0.5));
+            float BoundaryLayerResistance = (BoundaryLayerWidth / 1000) / DiffusionCoefficient;
+            return (BoundaryLayerWidth, BoundaryLayerResistance);
+        }
+
+        private static float LeafLayerResistanceWaterVapor(float StomatalResistance,
+            float CuticolarResistance, float IntercellularSpaceResistance)
+        {
+            float LeafLayerResistance = ((IntercellularSpaceResistance + StomatalResistance) * CuticolarResistance) /
+                (StomatalResistance + CuticolarResistance + IntercellularSpaceResistance);
+            return LeafLayerResistance;
+        }
+
+        //private static float Transpiration(float Tair, float Tmax, //for vapor density
+        //    float WindSpeed = 1, float LeafLength = 0.06F, float LeafShapeParam = 4, float DiffusionCoefficient = 2.42E-05F, //for boundary resistance
+        //    float StomatalResistance = 600, float CuticolarResistance = 500, float IntercellularSpaceResistance = 25) //for leaf resistance
+        //{
+        //    var (leafWaterVD, airWaterVD) = VaporDensity(Tair, Tmax);
+        //    var BoundaryResistance = BoundaryLayerResistanceWaterVapor(WindSpeed, LeafLength, LeafShapeParam, DiffusionCoefficient);
+        //    var LeafResistance = LeafLayerResistanceWaterVapor(StomatalResistance, CuticolarResistance, IntercellularSpaceResistance);
+
+        //    return (leafWaterVD - airWaterVD) / (LeafResistance + BoundaryResistance) * 1000 * 0.055F;
+
+        //}
+
+        private static (float DirectLightLeaves, float DiffuseLightLeaves) LightLeavesInterception(
+     float absorptionCoefficient = 0.6f,
+     float leafOrientationDeg = 40f,   // degrees
+     float directLight = 0f,
+     float diffuseLight = 0f)
+        {
+            // degrees → radians
+            float iRad = leafOrientationDeg * (float)(Math.PI / 180.0);
+
+            // optional safety clamps
+            float a = Math.Clamp(absorptionCoefficient, 0f, 1f);
+
+            float direct = a * (float)Math.Cos(iRad) * directLight;
+            float diffuse = a * diffuseLight;
+
+            return (direct, diffuse);
+        }
+
+
+        public static float LeavesTemperature(float Tair, float Tsoil, float VPD, float Tmax,
+            float absorptionCoefficient = 0.6F, float LeafOrientation = 40F, float DirectLight = 0F, float DiffuseLight = 0F,
+            float LeavesEmissivity = 0.97F, float StomatalResistance = 600F, float CuticolarResistance = 500,
+            float IntercellularSpaceResistance = 25F, float WindSpeed = 1F, float LeafLength = 0.06F, float LeafShapeParam = 4F)
+        {
+
+            const float SIGMA = 5.670374419e-8F; // W m-2 K-4
+            const float LATENT_HEAT_VAPOR = 2450.00F;   // J Kg-1
+            const float DIFFUSION_COEFF = 2.42E-05F;   //m2 s-1
+            const float THERMAL_CONDUCTIVITY = 0.0259F;
+
+
+
+            var (leafWaterVD, airWaterVD) = VaporDensity(Tair, Tmax);
+            var (DirectLightLeaves, DiffuseLightLeaves) = LightLeavesInterception(absorptionCoefficient, LeafOrientation, DirectLight, DiffuseLight);
+            var (Ldown, Lground, R_in, R_abs) = TerrestrialIR.ComputeR(Tair, Tsoil, VPD, null, .5F, LeavesEmissivity, .97F, .22F, .5F, 1F);
+            var LeafLayerResistance = LeafLayerResistanceWaterVapor(StomatalResistance, CuticolarResistance, IntercellularSpaceResistance);
+            var (BoundaryLayerWidth, BoundaryLayerResistance) = BoundaryLayerResistanceWaterVapor(WindSpeed, LeafLength, LeafShapeParam, DIFFUSION_COEFF);
+            var ConvectionCoefficient = THERMAL_CONDUCTIVITY / (BoundaryLayerWidth / 1000F); //W m-2 °C-1
+
+            float SlopeVapPress = (33.8639F * (0.05904F * (float)Math.Pow((0.00739F * Tmax + 0.8072F),7) - 0.0000342F)) * 0.1F;
+
+            float totalRadiation = DirectLightLeaves + DiffuseLightLeaves + R_abs;
+
+         
+            float Tleaf = Tair +
+                ((totalRadiation / 2 - 
+                (LeavesEmissivity * SIGMA * ((float)Math.Pow((Tair + 273.15), 4)) - ((LATENT_HEAT_VAPOR * (23 - airWaterVD)) /
+                (LeafLayerResistance + BoundaryLayerResistance)))) / (4 * LeavesEmissivity * SIGMA * ((float)Math.Pow((Tair + 273.15F), 3)) +
+                ConvectionCoefficient + ((LATENT_HEAT_VAPOR * SlopeVapPress * 0.804F)/ (LeafLayerResistance + BoundaryLayerResistance))));
+
+            return Tleaf;
+
+        }
+
+
+
 
         #endregion
     }
+
+
+
+    public static class TerrestrialIR
+    {
+        
+        private const float SIGMA = 5.670374419e-8F; // W m-2 K-4
+        // ---- public one-call method ------------------------------------------------
+        // Pass either vpdKPa 
+        // ===== API principale =====
+        // Passa VPD (kPa) OPPURE RH (%). cloudFraction opzionale [0..1].
+        public static (float Ldown, float Lground, float R_in, float R_abs) ComputeR(
+            float tAirC,
+            float soilTC,
+            float vpdKPa = 0,
+            float? cloudFraction = null,   // 0..1
+            float skyViewFactor = 0.5F,     // SVF: foglia verticale ~0.5; esposta verso l’alto ~1.0
+            float leafEmissivity = 0.98F,   // ≈ assorbanza LW
+            float groundEmissivity = 0.97F, // suolo/chioma
+            float cloudAlpha = 0.22F,       // f(C)=1+αC^2
+            float epsSkyClipMin = 0.50F,
+            float epsSkyClipMax = 1.00F
+        )
+        {
+            // 1) vapore (kPa)
+            float ea = EaFromVPD(tAirC, vpdKPa);
+            
+
+            // 2) L↓ (cielo → superficie)
+            float tAirK = tAirC + 273.15F;
+            float epsClr = SkyEmissivityClear(tAirK, ea, epsSkyClipMin, epsSkyClipMax);
+            float epsSky = SkyEmissivityAllSky(epsClr, cloudFraction, cloudAlpha);
+            float Ldown = epsSky * SIGMA * (float)Math.Pow(tAirK, 4);
+
+            // 3) Lground (suolo → cielo)
+            float tSoilK = soilTC + 273.15F;
+            float Lground = (float)Math.Clamp(groundEmissivity, 0.0, 1.0) * SIGMA * (float)Math.Pow(tSoilK, 4);
+
+            // 4) R incidente sulla foglia (geometria via SVF)
+            float SVF = (float)Math.Clamp(skyViewFactor, 0.0, 1.0);
+            float R_in = SVF * Ldown + (1.0F - SVF) * Lground;          // W m-2
+            float R_abs = (float)Math.Clamp(leafEmissivity, 0.0, 1.0) * R_in;   // ε·R
+
+            return (Ldown, Lground, R_in, R_abs);
+        }
+
+        // ---- helpers ---------------------------------------------------------------
+        // Saturation vapor pressure (kPa) via Tetens; T in °C
+        private static float Es_kPa(double tC) =>
+            0.6108F * (float)Math.Exp((17.27 * tC) / (tC + 237.3));
+
+        private static float EaFromVPD(float tAirC, float vpdKPa)
+        {
+            double es = Es_kPa(tAirC);
+            return (float)Math.Max(0.0, es - Math.Max(0.0, vpdKPa));
+        }
+
+    
+        // Brutsaert (1975) clear-sky emissivity; ea in kPa, T in K
+        private static float SkyEmissivityClear(float tAirK, float eaKPa, float clipMin, float clipMax)
+        {
+            double eps = 1.24 * Math.Pow(eaKPa / tAirK, 1.0 / 7.0);
+            if (double.IsNaN(eps) || double.IsInfinity(eps)) eps = clipMin;
+            return (float)(float)Math.Clamp(eps, clipMin, clipMax);
+        }
+
+        // All-sky emissivity with optional cloud fraction C (0..1)
+        private static float SkyEmissivityAllSky(float epsClear, float? cloudFraction, float alpha)
+        {
+            if (cloudFraction is null) return epsClear;
+            double C = Math.Clamp(cloudFraction.Value, 0.0, 1.0);
+            return (float)Math.Min(1.0, epsClear * (1.0 + alpha * C * C));
+        }
+    }
+
+
+
 
     #region vvvv execution interface
     public class vvvvInterface
@@ -698,7 +798,7 @@ namespace source.functions
         public output vvvvExecution(input input, parameters parameters)
         {
 
-            input = estimateHourly(input);
+            input.hourlyData = estimateHourly(input);
 
             //pass values from the previous day
             outputT0 = outputT1;
@@ -724,9 +824,9 @@ namespace source.functions
         }
 
         #region private methods
-        public input estimateHourly(input inputDaily)
+        public hourlyData estimateHourly(input inputDaily)
         {
-            input hourlyData = inputDaily;
+            hourlyData hourlyData = new hourlyData();
 
             float avgT = (inputDaily.airTemperatureMaximum + inputDaily.airTemperatureMinimum) / 2;
             float dailyRange = inputDaily.airTemperatureMaximum - inputDaily.airTemperatureMinimum;
@@ -734,34 +834,33 @@ namespace source.functions
                 inputDaily.airTemperatureMaximum);
             float rain = inputDaily.precipitation;
 
-            for (int h = 0; h < 24; h++)
+            for (int i = 0; i < 24; i++)
             {
                 // Temperature Estimate
-                float hourlyT = (float)(avgT + dailyRange / 2 * Math.Cos(0.2618f * (h - 15)));
-                hourlyData.airTemperatureH[h] = hourlyT;
+                float hourlyT = (float)(avgT + dailyRange / 2 * Math.Cos(0.2618f * (i - 15)));
+                hourlyData.airTemperature.Add(hourlyT);
 
                 // Relative Humidity Estimate            
                 float es = 0.6108f * (float)Math.Exp((17.27f * hourlyT) / (237.3F + hourlyT));
                 float ea = 0.6108f * (float)Math.Exp((17.27F * dewPoint) / (237.3F + dewPoint));
                 float rh_hour = ea / es * 100;
-                hourlyData.relativeHumidityH[h] = Math.Clamp(rh_hour, 0f, 100f);
+                hourlyData.relativeHumidity.Add(Math.Clamp(rh_hour, 0f, 100f));
 
                 // Precipitation
-                hourlyData.precipitationH[h] = rain / 24;
+                hourlyData.precipitation.Add(rain / 24);
 
                 // evenly distribute or use sinusoidal pattern
                 inputDaily.radData = dayLength(inputDaily, inputDaily.airTemperatureMaximum, inputDaily.airTemperatureMinimum);
 
-                //TODO: CONVERT FROM MJ
-                hourlyData.solarRadiationH[h] = inputDaily.radData.gsrHourly[h] * 1269.44F;
+                hourlyData.photoActiveRadiation.Add(inputDaily.radData.gsrHourly[i] * 1269.44F);
 
                 // Wind Speed ?
 
                 // VPD
-                hourlyData.vaporPressureDeficitH[h] = vpd(hourlyData, h);
+                hourlyData.vaporPressureDeficit.Add(vpd(hourlyData, i));
 
                 // ET₀
-                hourlyData.referenceET0H[h] = referenceEvapotranspiration(inputDaily, hourlyData, h);
+                hourlyData.referenceET0.Add(referenceEvapotranspiration(inputDaily, hourlyData, i));
             }
 
             return hourlyData;
@@ -849,17 +948,17 @@ namespace source.functions
             return _radData;
         }
 
-        public float vpd(input Input, int hour)
+        public float vpd(hourlyData Input, int hour)
         {
             //VPD calculation method by Monteith and Unsworth (1990)
 
-            float SVP = 0.6108f * (float)Math.Exp((17.27f * Input.airTemperatureH[hour]) / (Input.airTemperatureH[hour] + 237.3f)); // in kPa
-            float AVP = SVP * Input.relativeHumidityH[hour] / 100f;
+            float SVP = 0.6108f * (float)Math.Exp((17.27f * Input.airTemperature[hour]) / (Input.airTemperature[hour] + 237.3f)); // in kPa
+            float AVP = SVP * Input.relativeHumidity[hour] / 100f;
             float VPD = SVP - AVP;
             return VPD;
         }
 
-        public float referenceEvapotranspiration(input dailyInput, input Input, int hour)
+        public float referenceEvapotranspiration(input dailyInput, hourlyData Input, int hour)
         {
             // Convert Rs from W/m² to MJ/m²/h
             double Rs_MJ = dailyInput.PAR;
@@ -877,13 +976,13 @@ namespace source.functions
 
             // Compute ET0 using the equation
             double ET0 = c0
-                         + c1 * Input.relativeHumidityH[hour]
-                         + c2 * Input.airTemperatureH[hour]
-                         + c3 * Math.Pow(Input.relativeHumidityH[hour], 2)
-                         + c4 * Math.Pow(Input.airTemperatureH[hour], 2)
+                         + c1 * Input.relativeHumidity[hour]
+                         + c2 * Input.airTemperature[hour]
+                         + c3 * Math.Pow(Input.relativeHumidity[hour], 2)
+                         + c4 * Math.Pow(Input.airTemperature[hour], 2)
                          + c5 * Rs_MJ
-                         + 0.5 * Rs_MJ * (c6 * Input.relativeHumidityH[hour]
-                         + c7 * Input.airTemperatureH[hour])
+                         + 0.5 * Rs_MJ * (c6 * Input.relativeHumidity[hour]
+                         + c7 * Input.airTemperature[hour])
                          + c8 * Math.Pow(Rs_MJ, 2);
 
             if (ET0 < 0) { ET0 = 0; }

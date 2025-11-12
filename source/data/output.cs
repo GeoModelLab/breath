@@ -161,6 +161,7 @@ namespace source.data
         //diffuse/direct PAR
         public List<float> PARdiffuse = new List<float>();
         public List<float> PARdirect = new List<float>();
+        public float LightInterceptionUnder {  get; set; }
 
         //Leaf temperature
         public List<float> TleafOver = new List<float>();
@@ -195,11 +196,18 @@ namespace source.data
         public List<float> TscaleReco = new List<float>();
         public List<float> WscaleReco = new List<float>();
         public List<float> PhenologyscaleReco = new List<float>();
+        public List<float> recoOver = new List<float>();
+        public List<float> recoUnder = new List<float>();
+        public List<float> recoHetero = new List<float>();
         public List<float> reco = new List<float>();
+        public List<float> viHourly = new List<float>();
         public float recoDaily { get; set; }
 
         //net ecosystem exchange
         public List<float> nee = new List<float>();
         public float neeDaily { get; set; }
+        //hour
+        public List<int> hours = new List<int>();
+
     }
 }
