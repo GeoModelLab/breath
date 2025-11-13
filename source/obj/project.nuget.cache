@@ -1,8 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "b6oAVnpolzY=",
+  "dgSpecHash": "0PXLFcBDzH8=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Administrator\\OneDrive - CREA\\Desktop\\model dev\\BreathApi\\projects\\source\\source.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "C:\\REPO\\breath\\source\\source.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Natan\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.17\\microsoft.netcore.app.ref.8.0.17.nupkg.sha512",
+    "C:\\Users\\Natan\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.17\\microsoft.windowsdesktop.app.ref.8.0.17.nupkg.sha512",
+    "C:\\Users\\Natan\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.17\\microsoft.aspnetcore.app.ref.8.0.17.nupkg.sha512"
+  ],
   "logs": []
 }
