@@ -1,12 +1,140 @@
 ﻿using source.data;
 using System;
 
+// ============================================================================
+// Vegetation Index Dynamics Module - SWELL Model VI Simulation
+// ============================================================================
+// This module translates phenological state progression into vegetation index
+// (VI) dynamics (NDVI or EVI). VI serves as observable proxy for canopy
+// greenness and leaf area, linking model internal state to remotely sensed data.
+//
+// PHASE-SPECIFIC VI DYNAMICS:
+//
+// 1. ENDODORMANCY/ECODORMANCY (phenoCode 2):
+//    - Below base temperature: VI declines (senescence continuation)
+//      Rate = -nVIEndodormancy × temperatureRatio × distanceToMinimum
+//    - Above base temperature + lengthening days: VI increases (green-up)
+//      Rate = +nVIEcodormancy × thermalForcing × distanceToMaximum
+//    - Captures understory dynamics during overstory dormancy
+//
+// 2. GROWTH (phenoCode 3):
+//    - Rapid VI increase during leaf expansion
+//    - Rate modulated by growth percentage (faster early, slower at completion)
+//    - Rate = nVIGrowth × (1 - greenDownPercentage/100) × (1 - VItoMax)
+//    - viAtGrowth captured on first day (dormant understory baseline)
+//
+// 3. GREENDOWN (phenoCode 4):
+//    - Peak VI maintenance with slight decline
+//    - EVI: Exponential weight function (accelerating decline)
+//    - NDVI: Linear weight function
+//    - viAtGreendown captured on first day
+//
+// 4. DECLINE/SENESCENCE (phenoCode 5 or 1):
+//    - Accelerating VI decline during leaf abscission
+//    - Symmetric bell-shaped weight function peaks at 50% completion
+//    - Rate = -(nVIGreendown + nVISenescence × weight)
+//    - viAtSenescence captured at dormancy onset (phenoCode 2 start)
+//
+// CRITICAL VI THRESHOLDS:
+// - viAtGrowth: Understory baseline (captured at growth start)
+// - viAtSenescence: Pre-senescence peak (captured at endo/ecodormancy start)
+// - viAtGreendown: Peak greenness (captured at decline start)
+// - minimumVI/maximumVI: Hard bounds preventing unrealistic values
+//
+// VI STORAGE FORMAT:
+// Scaled to 100 (NDVI 0.85 stored as 85.0)
+// ============================================================================
+
 namespace source.functions
 {
-    //this class contains the method to simulate the growth, greendown and decline processes
+    /// <summary>
+    /// Vegetation index dynamics computation module for SWELL phenological model.
+    /// Translates phenological state into observable vegetation index (NDVI/EVI) dynamics.
+    ///
+    /// COUPLING WITH PHENOLOGY:
+    /// VI dynamics driven by phenoCode and phase completion percentages.
+    /// Phase-specific rate constants calibrated to match remotely sensed observations.
+    ///
+    /// BIOLOGICAL INTERPRETATION:
+    /// VI represents canopy greenness integrating:
+    /// - Overstory leaf area (phenology-dependent)
+    /// - Understory activity (temperature-dependent during dormancy)
+    /// - Chlorophyll content (declining during senescence)
+    ///
+    /// IMPLEMENTATION:
+    /// Single method (ndviNormalized) with phase-specific logic branches.
+    /// Critical thresholds captured at phase transitions for normalization.
+    /// </summary>
     public class VIdynamics
     {
+        /// <summary>
+        /// Flag to track first day of dormancy (endo/ecodormancy phase).
+        /// Used to capture viAtSenescence on transition to phenoCode 2.
+        /// Reset to 0 at growth phase start.
+        /// </summary>
         float startDormancy = 0;
+
+        /// <summary>
+        /// Computes daily vegetation index rate and state based on phenological phase.
+        ///
+        /// COMPUTATIONAL FLOW:
+        /// 1. Copy previous VI thresholds (viAtGrowth, viAtSenescence, viAtGreendown)
+        /// 2. Compute phase-specific VI rate based on phenoCode
+        /// 3. Accumulate state: vi(t) = vi(t-1) + viRate(t)
+        /// 4. Apply hard bounds (minimumVI to maximumVI)
+        /// 5. Capture critical thresholds at phase transitions
+        ///
+        /// PHASE-SPECIFIC LOGIC:
+        ///
+        /// phenoCode 2 (ENDO/ECODORMANCY):
+        /// - Understory dynamics dominate during overstory dormancy
+        /// - Temperature below base → VI decline (continuing senescence)
+        /// - Temperature above base + lengthening days → VI increase (green-up)
+        /// - First day: Capture viAtSenescence = vi / 100
+        ///
+        /// phenoCode 3 (GROWTH):
+        /// - Rapid VI increase during leaf expansion
+        /// - Rate modulated by: (1 - greenDownPercentage/100) × (1 - VItoMax)
+        /// - First day: Capture viAtGrowth = vi / 100
+        ///
+        /// phenoCode 4 (GREENDOWN):
+        /// - Slight VI decline during peak greenness
+        /// - EVI: Exponential weight (accelerating decline)
+        /// - NDVI: Linear weight (constant decline)
+        ///
+        /// phenoCode 5 or 1 (DECLINE/SENESCENCE):
+        /// - Accelerating VI decline during leaf abscission
+        /// - Symmetric bell weight peaks at 50% completion
+        /// - First day (phenoCode 5): Capture viAtGreendown = vi / 100
+        ///
+        /// NORMALIZATION APPROACH:
+        /// VItoMax = (current_vi - vi_at_phase_start) / (max_vi - vi_at_phase_start)
+        /// VItoMin = (current_vi - min_vi) / (vi_at_senescence - min_vi)
+        /// Prevents overshooting bounds and creates asymptotic approach to limits.
+        ///
+        /// PARAMETERS:
+        /// - parVegetationIndex.nVIEndodormancy: VI rate during cold dormancy (negative)
+        /// - parVegetationIndex.nVIEcodormancy: VI rate during warm ecodormancy (positive)
+        /// - parVegetationIndex.nVIGrowth: VI rate constant for growth phase
+        /// - parVegetationIndex.nVIGreendown: VI rate constant for greendown phase
+        /// - parVegetationIndex.nVISenescence: VI rate constant for senescence phase
+        /// - parVegetationIndex.minimumVI: Lower bound (typically 0.1-0.2)
+        /// - parVegetationIndex.maximumVI: Upper bound (typically 0.85-0.95)
+        ///
+        /// CRITICAL THRESHOLDS CAPTURED:
+        /// - viAtGrowth: Set on first day of growth (dormant understory baseline)
+        /// - viAtSenescence: Set on first day of endo/ecodormancy (pre-senescence peak)
+        /// - viAtGreendown: Set on first day of decline (peak greenness)
+        ///
+        /// IMPLEMENTATION NOTE:
+        /// pixelTemperatureShift commented out (line 36) to maintain consistency
+        /// between phenology and carbon flux calculations. Temperature shift now
+        /// applied only in photosynthesis module.
+        /// </summary>
+        /// <param name="input">Daily weather inputs with temperature and vegetation index type</param>
+        /// <param name="parameters">VI parameters (rate constants, min/max bounds) and growth parameters</param>
+        /// <param name="output">Previous timestep output (T-1) for state accumulation and threshold tracking</param>
+        /// <param name="outputT1">Current timestep output (T) to receive updated VI values</param>
         public void ndviNormalized(input input, parameters parameters, output output, output outputT1)
         {
             outputT1.viAtGrowth = output.viAtGrowth;
@@ -185,6 +313,33 @@ namespace source.functions
 
         }
 
+        /// <summary>
+        /// Computes symmetric bell-shaped weight function for senescence rate modulation.
+        ///
+        /// MATHEMATICAL FORMULATION:
+        /// f(x) = exp(-(x - 50)² / 1000)
+        /// where x is decline completion percentage (0-100)
+        ///
+        /// CHARACTERISTICS:
+        /// - Maximum weight (1.0) at x = 50% completion
+        /// - Symmetric decay on both sides
+        /// - Approaches 0 at x = 0% and x = 100%
+        /// - Standard deviation ≈ 31.6, gives smooth transition
+        ///
+        /// BIOLOGICAL INTERPRETATION:
+        /// Senescence acceleration peaks at mid-decline when both environmental
+        /// triggers (photoperiod, temperature) and internal senescence signals
+        /// are most active. Early and late decline proceed more slowly.
+        ///
+        /// USAGE:
+        /// Weight applied to nVISenescence rate constant in decline phase:
+        /// Rate = -(nVIGreendown + nVISenescence × weight)
+        ///
+        /// This creates accelerating then decelerating VI decline matching
+        /// observed autumn leaf-fall patterns.
+        /// </summary>
+        /// <param name="x">Decline completion percentage (0-100)</param>
+        /// <returns>Weight factor (0.0-1.0) with peak at 50%</returns>
         static float SymmetricBellFunction(float x)
         {
             float scaledX = (float)Math.Exp(-Math.Pow((x - 50), 2) / Math.Pow(10, 3));

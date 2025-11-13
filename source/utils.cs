@@ -1,9 +1,88 @@
 ﻿using source.data;
 using source.functions;
 
+// ============================================================================
+// Utility Functions Module - SWELL Model Core Computational Library
+// ============================================================================
+// This static class provides all core computational functions used across the
+// SWELL model for phenology, carbon exchanges, and data processing.
+//
+// FUNCTIONAL ORGANIZATION:
+//
+// 1. **WEATHER DATA PROCESSING**:
+//    - hourlyTemperature(): Sinusoidal temperature disaggregation (Campbell 1985)
+//    - astronomy(): Solar geometry, day length, extraterrestrial radiation
+//    - dayLength(): Standalone day length calculation
+//    - PartitionRadiation(): Direct/diffuse radiation partitioning (Erbs et al. 1982)
+//
+// 2. **PHENOLOGY FORCING FUNCTIONS**:
+//    - forcingUnitFunction(): Yan & Hunt (1999) thermal forcing with 3 cardinal temps
+//    - photoperiodFunctionInduction(): Sigmoid photoperiod response for dormancy
+//    - temperatureFunctionInduction(): Sigmoid temperature response for dormancy
+//    - endodormancyRate(): Hourly chilling accumulation (Utah model variant)
+//    - ecodormancyRate(): Photothermal forcing with asymptote scaling
+//
+// 3. **VEGETATION INDEX & CANOPY STRUCTURE**:
+//    - estimateVegetationCover(): VI-based fractional cover estimation
+//    - estimateLAI(): Two-layer LAI from EVI with temporal continuity
+//
+// 4. **CARBON EXCHANGE ENVIRONMENTAL MODIFIERS**:
+//    - waterStressFunction(): Rolling memory precipitation-ET0 balance
+//    - VPDfunction(): Sigmoid vapor pressure deficit response
+//    - phenologyFunction(): Logistic aging function during growth
+//    - PARGppfunction(): Michaelis-Menten PAR saturation response
+//    - temperatureFunction(): Symmetric polynomial temperature response for GPP
+//
+// 5. **RESPIRATION CALCULATIONS**:
+//    - ComputeTscaleReco(): Lloyd-Taylor temperature response with safeguards
+//    - gppRecoTreeFunction(): Overstory GPP-dependent respiration with aging
+//    - gppRecoUnderFunction(): Understory GPP-dependent respiration
+//    - RecoRespirationFunction(): Phenological aging modifier for respiration
+//
+// 6. **VVVV INTERFACE**:
+//    - vvvvInterface class: Main execution wrapper for vvvv visual programming
+//    - estimateHourly(): Hourly disaggregation from daily weather inputs
+//    - vvvvExecution(): Complete model timestep with phenology and carbon fluxes
+//
+// CRITICAL CONSTANTS:
+// - Solar constant: 4.921 MJ m⁻² h⁻¹ (extraterrestrial radiation)
+// - PAR fraction: 50.5% of shortwave radiation
+// - Reference temperature (Lloyd-Taylor): 288.15 K (15°C)
+// - Temperature offset (Lloyd-Taylor): 227.13 K
+// - Latitude validity: -65° to 65° for day length calculations
+//
+// MATHEMATICAL FOUNDATIONS:
+// - Yan & Hunt (1999): Non-linear thermal forcing with asymmetric curves
+// - Campbell (1985): Sinusoidal temperature disaggregation
+// - Erbs et al. (1982): Direct/diffuse radiation partitioning
+// - Lloyd-Taylor: Exponential temperature response for respiration
+// - Michaelis-Menten: Hyperbolic saturation kinetics for PAR response
+//
+// STATE MANAGEMENT:
+// Functions are stateless except for vvvvInterface which maintains
+// outputT0 and outputT1 for temporal continuity between timesteps.
+// ============================================================================
+
 namespace source.functions
 {
-    //this static class contains the utility functions used by the SWELL model
+    /// <summary>
+    /// Static utility class providing all core computational functions for SWELL model.
+    ///
+    /// DESIGN PHILOSOPHY:
+    /// Pure functions with no side effects (except vvvvInterface state management).
+    /// All functions accept explicit parameters and return computed values.
+    ///
+    /// USAGE PATTERN:
+    /// Called by phenology functions (dormancySeason, growingSeason), vegetation
+    /// index dynamics (VIdynamics), carbon exchanges (exchanges), and vvvv interface.
+    ///
+    /// NUMERICAL STABILITY:
+    /// Temperature response functions include safeguards against:
+    /// - Division by zero
+    /// - Exponential overflow
+    /// - Invalid logarithms
+    /// - Out-of-range inputs
+    /// </summary>
     public static class utils
     {
         #region additional weather inputs
