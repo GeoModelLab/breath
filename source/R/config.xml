@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+  <!-- Year range to process -->
+  <StartYear>1980</StartYear>
+  <EndYear>2024</EndYear>
+  
+  <!-- Number of days per binary chunk file -->
+  <ChunkDays>730</ChunkDays>
+  
+  <!-- Geographic bounds (inclusive) -->
+  <!-- Default: European region -->
+  <MinLongitude>-25.0</MinLongitude>
+  <MaxLongitude>45.0</MaxLongitude>
+  <MinLatitude>34.0</MinLatitude>
+  <MaxLatitude>72.0</MaxLatitude>
+  
+  <!-- Output folder for processed data -->
+  <OutputFolder>./weather_data_chunks</OutputFolder>
+  
+  <!-- Input folder containing E-OBS NetCDF files -->
+  <InputFolder>./eobs_data</InputFolder>
+</Configuration>
