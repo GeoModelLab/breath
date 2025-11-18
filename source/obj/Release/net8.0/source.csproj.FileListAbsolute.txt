@@ -1,0 +1,13 @@
+C:\REPO\breath\source\bin\Release\net8.0\source.deps.json
+C:\REPO\breath\source\bin\Release\net8.0\source.dll
+C:\REPO\breath\source\bin\Release\net8.0\source.pdb
+C:\REPO\breath\source\obj\Release\net8.0\source.csproj.AssemblyReference.cache
+C:\REPO\breath\source\obj\Release\net8.0\source.GeneratedMSBuildEditorConfig.editorconfig
+C:\REPO\breath\source\obj\Release\net8.0\source.AssemblyInfoInputs.cache
+C:\REPO\breath\source\obj\Release\net8.0\source.AssemblyInfo.cs
+C:\REPO\breath\source\obj\Release\net8.0\source.csproj.CoreCompileInputs.cache
+C:\REPO\breath\source\obj\Release\net8.0\source.sourcelink.json
+C:\REPO\breath\source\obj\Release\net8.0\source.dll
+C:\REPO\breath\source\obj\Release\net8.0\refint\source.dll
+C:\REPO\breath\source\obj\Release\net8.0\source.pdb
+C:\REPO\breath\source\obj\Release\net8.0\ref\source.dll

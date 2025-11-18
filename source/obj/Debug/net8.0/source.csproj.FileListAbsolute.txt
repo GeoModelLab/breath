@@ -10,3 +10,16 @@ C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\sour
 C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\refint\source.dll
 C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\source.pdb
 C:\Users\Administrator\OneDrive - CREA\Desktop\model dev\BreathApi\projects\source\obj\Debug\net8.0\ref\source.dll
+C:\REPO\breath\source\bin\Debug\net8.0\source.deps.json
+C:\REPO\breath\source\bin\Debug\net8.0\source.dll
+C:\REPO\breath\source\bin\Debug\net8.0\source.pdb
+C:\REPO\breath\source\obj\Debug\net8.0\source.csproj.AssemblyReference.cache
+C:\REPO\breath\source\obj\Debug\net8.0\source.GeneratedMSBuildEditorConfig.editorconfig
+C:\REPO\breath\source\obj\Debug\net8.0\source.AssemblyInfoInputs.cache
+C:\REPO\breath\source\obj\Debug\net8.0\source.AssemblyInfo.cs
+C:\REPO\breath\source\obj\Debug\net8.0\source.csproj.CoreCompileInputs.cache
+C:\REPO\breath\source\obj\Debug\net8.0\source.sourcelink.json
+C:\REPO\breath\source\obj\Debug\net8.0\source.dll
+C:\REPO\breath\source\obj\Debug\net8.0\refint\source.dll
+C:\REPO\breath\source\obj\Debug\net8.0\source.pdb
+C:\REPO\breath\source\obj\Debug\net8.0\ref\source.dll
