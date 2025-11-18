@@ -26,16 +26,24 @@ read_config <- function(config_path = "config.xml") {
   doc <- xmlParse(config_path)
   root <- xmlRoot(doc)
   
+  # Use xmlGetText for more robust XML parsing
+  get_xml_value <- function(node_name) {
+    node <- root[[node_name]]
+    if (is.null(node)) {
+      stop(sprintf("Missing required XML element: %s", node_name))
+    }
+    xmlValue(node)
+  }
+  
   config <- list(
-    startYear = as.integer(xmlValue(root[["StartYear"]])),
-    endYear = as.integer(xmlValue(root[["EndYear"]])),
-    chunkDays = as.integer(xmlValue(root[["ChunkDays"]])),
-    minLongitude = as.numeric(xmlValue(root[["MinLongitude"]])),
-    maxLongitude = as.numeric(xmlValue(root[["MaxLongitude"]])),
-    minLatitude = as.numeric(xmlValue(root[["MinLatitude"]])),
-    maxLatitude = as.numeric(xmlValue(root[["MaxLatitude"]])),
-    outputFolder = xmlValue(root[["OutputFolder"]]),
-    inputFolder = xmlValue(root[["InputFolder"]])
+    startYear = as.integer(get_xml_value("StartYear")),
+    endYear = as.integer(get_xml_value("EndYear")),
+    chunkDays = as.integer(get_xml_value("ChunkDays")),
+    minLongitude = as.numeric(get_xml_value("MinLongitude")),
+    maxLongitude = as.numeric(get_xml_value("MaxLongitude")),
+    minLatitude = as.numeric(get_xml_value("MinLatitude")),
+    maxLatitude = as.numeric(get_xml_value("MaxLatitude")),
+    dataFolder = get_xml_value("DataFolder")
   )
   
   free(doc)
@@ -45,6 +53,9 @@ read_config <- function(config_path = "config.xml") {
 # ============================================================================
 # 2. HELPER FUNCTIONS
 # ============================================================================
+
+# Null coalescing operator
+`%||%` <- function(a, b) if (!is.null(a)) a else b
 
 # Get time values and units from NetCDF
 get_time_vals_units <- function(nc) {
@@ -195,7 +206,7 @@ process_attribute <- function(nc_path, config, attr_name, attr_desc, attr_unit, 
   cat(sprintf("  Creating %d chunks of %d days each\n", num_chunks, chunk_days))
   
   # Create output directory
-  attr_dir <- file.path(config$outputFolder, attr_name)
+  attr_dir <- file.path(config$dataFolder, attr_name)
   dir.create(attr_dir, showWarnings = FALSE, recursive = TRUE)
   
   # Process each chunk
@@ -210,19 +221,22 @@ process_attribute <- function(nc_path, config, attr_name, attr_desc, attr_unit, 
     time_start_global <- time_indices[chunk_start_day]
     
     chunk_start_date <- dates_filtered[chunk_start_day]
-    chunk_year <- as.integer(format(chunk_start_date, "%Y"))
+    chunk_end_date <- dates_filtered[chunk_end_day]
+    chunk_start_year <- as.integer(format(chunk_start_date, "%Y"))
+    chunk_end_year <- as.integer(format(chunk_end_date, "%Y"))
     chunk_day_of_year <- as.integer(format(chunk_start_date, "%j"))
     
-    # Filename
-    chunk_filename <- sprintf("chunk_%d_%03d-%03d.bin", 
-                              chunk_year, 
-                              chunk_start_day, 
-                              chunk_end_day)
+    # Filename with absolute day indices and year range
+    chunk_filename <- sprintf("chunk_%04d-%04d_%d-%d.bin", 
+                              chunk_start_day,      # Absolute start day (e.g., 0001)
+                              chunk_end_day,        # Absolute end day (e.g., 0730)
+                              chunk_start_year,     # Year of first entry
+                              chunk_end_year)       # Year of last entry
     chunk_path <- file.path(attr_dir, chunk_filename)
     
-    cat(sprintf("  Chunk %d/%d: %s (days %d-%d, %d days)\n",
-                chunk_idx, num_chunks, chunk_filename,
-                chunk_start_day, chunk_end_day, chunk_num_days))
+    cat(sprintf("  Chunk %d/%d: %s (%d days, %s to %s)\n",
+                chunk_idx, num_chunks, chunk_filename, chunk_num_days,
+                format(chunk_start_date), format(chunk_end_date)))
     
     # Read data block
     data <- read_spatial_block(nc, varname, lonname, latname,
@@ -268,7 +282,7 @@ process_attribute <- function(nc_path, config, attr_name, attr_desc, attr_unit, 
     # Store chunk info
     chunk_info[[chunk_idx]] <- list(
       file = file.path(attr_name, chunk_filename),
-      startYear = chunk_year,
+      startYear = chunk_start_year,
       startDayOfYear = chunk_day_of_year,
       numDays = chunk_num_days,
       numCoordinates = num_coords,
@@ -300,66 +314,101 @@ process_attribute <- function(nc_path, config, attr_name, attr_desc, attr_unit, 
 }
 
 # ============================================================================
-# 4. WRITE COORDINATE INDEX FILE
+# 4. WRITE LOOKUP TABLE FILE
 # ============================================================================
 
-write_coord_index <- function(config, lon_filtered, lat_filtered, lon_indices, lat_indices) {
+write_lookup_table <- function(config, lon_filtered, lat_filtered, lon_indices, lat_indices) {
   
-  index_path <- file.path(config$outputFolder, "coords_index.bin")
+  lookup_path <- file.path(config$dataFolder, "coords_lookup.bin")
   
-  num_coords <- length(lon_indices) * length(lat_indices)
+  cat(sprintf("\nWriting coordinate lookup table: %s\n", lookup_path))
   
-  cat(sprintf("\nWriting coordinate index: %s (%d coords)\n", index_path, num_coords))
+  # Calculate grid dimensions at 0.1° resolution
+  grid_resolution <- 0.1
   
-  con <- file(index_path, "wb")
+  num_lon_cells <- round((config$maxLongitude - config$minLongitude) / grid_resolution) + 1
+  num_lat_cells <- round((config$maxLatitude - config$minLatitude) / grid_resolution) + 1
   
-  # Header
-  writeBin(charToRaw("CORD"), con)  # magic
-  writeBin(as.integer(1), con, size = 4)  # version
-  writeBin(as.integer(num_coords), con, size = 4)  # numCoordinates
-  writeBin(as.numeric(config$minLongitude), con, size = 4)
-  writeBin(as.numeric(config$maxLongitude), con, size = 4)
-  writeBin(as.numeric(config$minLatitude), con, size = 4)
-  writeBin(as.numeric(config$maxLatitude), con, size = 4)
-  writeBin(as.integer(0), con, size = 4)  # reserved1
-  writeBin(as.integer(0), con, size = 4)  # reserved2
+  total_cells <- num_lon_cells * num_lat_cells
   
-  # Entries
+  cat(sprintf("  Grid dimensions: %d (lon) x %d (lat) = %d cells\n", 
+              num_lon_cells, num_lat_cells, total_cells))
+  
+  # Initialize lookup table with -1 (no data)
+  lookup_table <- rep(-1L, total_cells)
+  
+  # Build coordinate map: (lon, lat) -> coordinate index
   coord_idx <- 0
+  coord_map <- list()
+  
   for (j_idx in seq_along(lat_indices)) {
     for (i_idx in seq_along(lon_indices)) {
       lat <- lat_filtered[j_idx]
       lon <- lon_filtered[i_idx]
-      gridX <- lon_indices[i_idx]
-      gridY <- lat_indices[j_idx]
       
-      writeBin(as.numeric(lat), con, size = 4)
-      writeBin(as.numeric(lon), con, size = 4)
-      writeBin(as.integer(gridX), con, size = 4)
-      writeBin(as.integer(gridY), con, size = 4)
-      writeBin(as.integer(coord_idx), con, size = 4)  # originalFileIndex
+      # Calculate grid indices
+      gridX <- round((lon - config$minLongitude) / grid_resolution)
+      gridY <- round((lat - config$minLatitude) / grid_resolution)
+      
+      # Calculate 1D lookup index
+      lookup_idx <- gridY * num_lon_cells + gridX + 1  # +1 for R 1-based indexing
+      
+      if (lookup_idx >= 1 && lookup_idx <= total_cells) {
+        lookup_table[lookup_idx] <- coord_idx
+      }
       
       coord_idx <- coord_idx + 1
     }
   }
   
+  num_valid <- sum(lookup_table >= 0)
+  num_invalid <- sum(lookup_table < 0)
+  
+  cat(sprintf("  Valid coordinates: %d\n", num_valid))
+  cat(sprintf("  Invalid/ocean cells: %d\n", num_invalid))
+  
+  # Write binary file
+  con <- file(lookup_path, "wb")
+  
+  # Header
+  writeBin(charToRaw("LOOK"), con)  # magic
+  writeBin(as.integer(1), con, size = 4)  # version
+  writeBin(as.integer(num_lon_cells), con, size = 4)  # numLonCells
+  writeBin(as.integer(num_lat_cells), con, size = 4)  # numLatCells
+  writeBin(as.numeric(config$minLongitude), con, size = 4)
+  writeBin(as.numeric(config$maxLongitude), con, size = 4)
+  writeBin(as.numeric(config$minLatitude), con, size = 4)
+  writeBin(as.numeric(config$maxLatitude), con, size = 4)
+  writeBin(as.numeric(grid_resolution), con, size = 4)
+  writeBin(as.integer(num_valid), con, size = 4)  # numValidCoordinates
+  writeBin(as.integer(0), con, size = 4)  # reserved1
+  writeBin(as.integer(0), con, size = 4)  # reserved2
+  
+  # Lookup table data (int32 array)
+  writeBin(as.integer(lookup_table), con, size = 4)
+  
   close(con)
   
-  cat(sprintf("  Wrote %d coordinate entries\n", num_coords))
+  cat(sprintf("  Lookup table written successfully\n"))
+  
+  return(num_valid)
 }
 
 # ============================================================================
 # 5. WRITE SPECIFICATION XML
 # ============================================================================
 
-write_specification_xml <- function(config, attributes_info, processing_time) {
+write_specification_xml <- function(config, attributes_info, num_valid_coords, processing_time) {
   
-  spec_path <- file.path(config$outputFolder, "specification.xml")
+  spec_path <- file.path(config$dataFolder, "specification.xml")
   
   cat(sprintf("\nWriting specification: %s\n", spec_path))
   
-  # Use first attribute for coordinate info (all should be the same)
-  num_coords <- attributes_info[[1]]$numCoords
+  # Calculate grid dimensions
+  grid_resolution <- 0.1
+  num_lon_cells <- round((config$maxLongitude - config$minLongitude) / grid_resolution) + 1
+  num_lat_cells <- round((config$maxLatitude - config$minLatitude) / grid_resolution) + 1
+  
   num_chunks <- length(attributes_info[[1]]$chunks)
   
   start_date <- as.Date(sprintf("%d-01-01", config$startYear))
@@ -376,8 +425,11 @@ write_specification_xml <- function(config, attributes_info, processing_time) {
   writeLines(sprintf('    created="%s"', format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")), con)
   writeLines(sprintf('    source="E-OBS v31.0e"'), con)
   writeLines(sprintf('    converter="eobs_chunk_exporter.R v1.0"'), con)
-  writeLines(sprintf('    numCoordinates="%d"', num_coords), con)
-  writeLines(sprintf('    coordinateIndexFile="coords_index.bin"'), con)
+  writeLines(sprintf('    numCoordinates="%d"', num_valid_coords), con)
+  writeLines(sprintf('    lookupTableFile="coords_lookup.bin"'), con)
+  writeLines(sprintf('    gridResolution="%.1f"', grid_resolution), con)
+  writeLines(sprintf('    numLonCells="%d"', num_lon_cells), con)
+  writeLines(sprintf('    numLatCells="%d"', num_lat_cells), con)
   writeLines(sprintf('    coordinateOrdering="LatitudeThenLongitude"'), con)
   writeLines(sprintf('    minLongitude="%.6f"', config$minLongitude), con)
   writeLines(sprintf('    maxLongitude="%.6f"', config$maxLongitude), con)
@@ -445,11 +497,10 @@ main <- function() {
   cat(sprintf("  Chunk Days: %d\n", config$chunkDays))
   cat(sprintf("  Longitude: %.2f to %.2f\n", config$minLongitude, config$maxLongitude))
   cat(sprintf("  Latitude: %.2f to %.2f\n", config$minLatitude, config$maxLatitude))
-  cat(sprintf("  Output Folder: %s\n", config$outputFolder))
-  cat(sprintf("  Input Folder: %s\n\n", config$inputFolder))
+  cat(sprintf("  Data Folder: %s\n\n", config$dataFolder))
   
-  # Create output directory
-  dir.create(config$outputFolder, showWarnings = FALSE, recursive = TRUE)
+  # Create attribute subdirectories (output goes in same folder as input)
+  # Main data folder should already exist (contains NetCDF files)
   
   # Define attributes to process
   attributes_config <- list(
@@ -499,7 +550,7 @@ main <- function() {
   attributes_info <- list()
   
   for (attr_cfg in attributes_config) {
-    nc_path <- file.path(config$inputFolder, attr_cfg$file)
+    nc_path <- file.path(config$dataFolder, attr_cfg$file)
     
     if (!file.exists(nc_path)) {
       warning(sprintf("File not found: %s - skipping", nc_path))
@@ -519,17 +570,17 @@ main <- function() {
     attributes_info[[attr_cfg$name]] <- attr_info
   }
   
-  # Write coordinate index (use first attribute's coordinate info)
+  # Write lookup table (use first attribute's coordinate info)
   first_attr <- attributes_info[[1]]
-  write_coord_index(config, first_attr$lonFiltered, first_attr$latFiltered,
-                    first_attr$lonIndices, first_attr$latIndices)
+  num_valid_coords <- write_lookup_table(config, first_attr$lonFiltered, first_attr$latFiltered,
+                                         first_attr$lonIndices, first_attr$latIndices)
   
   # Calculate processing time
   end_time <- Sys.time()
   processing_time <- as.numeric(difftime(end_time, start_time, units = "secs"))
   
   # Write specification XML
-  write_specification_xml(config, attributes_info, processing_time)
+  write_specification_xml(config, attributes_info, num_valid_coords, processing_time)
   
   cat("\n============================================================\n")
   cat(sprintf("Processing complete! Total time: %.2f seconds\n", processing_time))

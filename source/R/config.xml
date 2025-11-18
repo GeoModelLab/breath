@@ -14,9 +14,7 @@
   <MinLatitude>34.0</MinLatitude>
   <MaxLatitude>72.0</MaxLatitude>
   
-  <!-- Output folder for processed data -->
-  <OutputFolder>./weather_data_chunks</OutputFolder>
-  
-  <!-- Input folder containing E-OBS NetCDF files -->
-  <InputFolder>./eobs_data</InputFolder>
+  <!-- Data folder containing E-OBS NetCDF files -->
+  <!-- Chunk files will be created in this same folder -->
+  <DataFolder>C:\REPO\breath\data\nc files</DataFolder>
 </Configuration>
