@@ -862,5 +862,133 @@ namespace source.data
                 { "PARscaleOverstory", PARscaleOverstory }
             };
         }
+
+        /// <summary>
+        /// Transposes hourly time series from property-oriented to hour-oriented structure.
+        /// Returns a list of 24 HourlyState objects, one per hour, each containing all property values for that hour.
+        ///
+        /// TRANSFORMATION:
+        /// Input: Property lists with 24 elements each (nee[0-23], gpp[0-23], etc.)
+        /// Output: 24 HourlyState objects, each with all properties at that hour index
+        ///
+        /// USAGE:
+        /// Enables hour-by-hour analysis and export with proper timestamps.
+        /// Each HourlyState contains DateTime (baseDate + hour offset) and all flux/scaler values.
+        /// </summary>
+        /// <param name="baseDate">Starting datetime for hour 0 (subsequent hours incremented by 1 hour)</param>
+        /// <returns>List of 24 HourlyState objects, one per hour (0-23)</returns>
+        public List<HourlyState> GetHourlyStates(DateTime baseDate)
+        {
+            var hourlyStates = new List<HourlyState>();
+            var timeSeriesDict = GetHourlyTimeSeriesAsDictionary();
+
+            for (int hour = 0; hour < 24; hour++)
+            {
+                var properties = new Dictionary<string, float>();
+
+                // Extract value at current hour index from each property list
+                foreach (var kvp in timeSeriesDict)
+                {
+                    string propertyName = kvp.Key;
+                    List<float> valuesList = kvp.Value;
+
+                    // Add the value at this hour index to the properties dictionary
+                    if (valuesList != null && hour < valuesList.Count)
+                    {
+                        properties[propertyName] = valuesList[hour];
+                    }
+                }
+
+                // Create HourlyState with timestamp and properties for this hour
+                var timestamp = baseDate.AddHours(hour);
+                hourlyStates.Add(new HourlyState(timestamp, properties));
+            }
+
+            return hourlyStates;
+        }
+    }
+
+    /// <summary>
+    /// Represents the state of all carbon flux and environmental variables at a single hour.
+    /// Transposes hourly time series from property-oriented (24-element lists) to hour-oriented structure.
+    ///
+    /// STRUCTURE:
+    /// - Timestamp: DateTime for this specific hour
+    /// - Properties: Dictionary containing all flux/scaler values at this hour
+    ///
+    /// TYPICAL PROPERTIES:
+    /// Carbon fluxes: nee, reco, gpp, gppOver, gppUnder, recoOver, recoUnder, recoHetero
+    /// Temperature scalers: TscaleReco, TscaleOver
+    /// Environmental scalers: vpdScale, WaterStress
+    /// Light scalers: PARscaleUnderstory, PARscaleOverstory
+    ///
+    /// USAGE:
+    /// Created by exchanges.GetHourlyStates() for hour-by-hour analysis and export.
+    /// </summary>
+    public class HourlyState
+    {
+        /// <summary>
+        /// Timestamp for this hourly state (date + hour offset).
+        /// Represents the specific hour (0-23) within the day.
+        /// </summary>
+        public DateTime Timestamp { get; set; }
+
+        /// <summary>
+        /// Dictionary of property names to values at this hour.
+        /// Keys: property names (e.g., "nee", "gpp", "TscaleOver")
+        /// Values: float values at this specific hour
+        /// </summary>
+        public Dictionary<string, float> Properties { get; set; }
+
+        /// <summary>
+        /// Default constructor for serialization/deserialization.
+        /// </summary>
+        public HourlyState()
+        {
+            Timestamp = DateTime.MinValue;
+            Properties = new Dictionary<string, float>();
+        }
+
+        /// <summary>
+        /// Constructor to create HourlyState with timestamp and properties.
+        /// </summary>
+        /// <param name="timestamp">DateTime for this hour</param>
+        /// <param name="properties">Dictionary of property names to values at this hour</param>
+        public HourlyState(DateTime timestamp, Dictionary<string, float> properties)
+        {
+            Timestamp = timestamp;
+            Properties = properties ?? new Dictionary<string, float>();
+        }
+
+        /// <summary>
+        /// Retrieves a specific property value by name.
+        /// Returns 0.0f if property doesn't exist.
+        /// </summary>
+        /// <param name="propertyName">Name of the property to retrieve</param>
+        /// <returns>Property value or 0.0f if not found</returns>
+        public float GetProperty(string propertyName)
+        {
+            return Properties.TryGetValue(propertyName, out float value) ? value : 0.0f;
+        }
+
+        /// <summary>
+        /// Returns all properties as a dictionary (the "split" operation).
+        /// Provides access to the complete set of hourly values.
+        /// </summary>
+        /// <returns>Dictionary of all property names and values</returns>
+        public Dictionary<string, float> GetAllProperties()
+        {
+            return Properties;
+        }
+
+        /// <summary>
+        /// Checks if a property exists in this hourly state.
+        /// </summary>
+        /// <param name="propertyName">Name of the property to check</param>
+        /// <returns>True if property exists, false otherwise</returns>
+        public bool HasProperty(string propertyName)
+        {
+            return Properties.ContainsKey(propertyName);
+        }
     }
 }
