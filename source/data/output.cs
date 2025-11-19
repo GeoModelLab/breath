@@ -826,5 +826,41 @@ namespace source.data
         // NOTE: State persistence fields for respiration smoothing
         // (lastRecoTree, lastRecoUnder) should be added here if not present
         // in the actual implementation. These persist across hours AND days.
+
+        /// <summary>
+        /// Returns all hourly time series (List&lt;float&gt; properties) as a dictionary.
+        /// Dictionary keys are property names, values are the corresponding hourly lists.
+        ///
+        /// INCLUDED PROPERTIES:
+        /// - Carbon fluxes: nee, reco, gpp, gppOver, gppUnder, recoOver, recoUnder, recoHetero
+        /// - Temperature scalers: TscaleReco, TscaleOver
+        /// - Environmental scalers: vpdScale, WaterStress
+        /// - Light scalers: PARscaleUnderstory, PARscaleOverstory
+        ///
+        /// USAGE:
+        /// Enables efficient batch export of hourly data for analysis, visualization, or output to vvvv.
+        /// All lists contain 24 elements (hours 0-23).
+        /// </summary>
+        /// <returns>Dictionary mapping property names to their hourly value lists</returns>
+        public Dictionary<string, List<float>> GetHourlyTimeSeriesAsDictionary()
+        {
+            return new Dictionary<string, List<float>>
+            {
+                { "nee", nee },
+                { "reco", reco },
+                { "gpp", gpp },
+                { "gppOver", gppOver },
+                { "gppUnder", gppUnder },
+                { "recoUnder", recoUnder },
+                { "recoOver", recoOver },
+                { "recoHetero", recoHetero },
+                { "TscaleReco", TscaleReco },
+                { "TscaleOver", TscaleOver },
+                { "vpdScale", vpdScale },
+                { "WaterStress", WaterStress },
+                { "PARscaleUnderstory", PARscaleUnderstory },
+                { "PARscaleOverstory", PARscaleOverstory }
+            };
+        }
     }
 }

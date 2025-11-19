@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\REPO\\breath\\source\\source.csproj": {}
+    "c:\\REPO\\breath\\source\\source.csproj": {}
   },
   "projects": {
-    "C:\\REPO\\breath\\source\\source.csproj": {
+    "c:\\REPO\\breath\\source\\source.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\REPO\\breath\\source\\source.csproj",
+        "projectUniqueName": "c:\\REPO\\breath\\source\\source.csproj",
         "projectName": "source",
-        "projectPath": "C:\\REPO\\breath\\source\\source.csproj",
+        "projectPath": "c:\\REPO\\breath\\source\\source.csproj",
         "packagesPath": "C:\\Users\\Natan\\.nuget\\packages\\",
-        "outputPath": "C:\\REPO\\breath\\source\\obj\\",
+        "outputPath": "c:\\REPO\\breath\\source\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
