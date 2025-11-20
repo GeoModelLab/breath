@@ -828,8 +828,8 @@ namespace source.data
         // in the actual implementation. These persist across hours AND days.
 
         /// <summary>
-        /// Returns all hourly time series (List&lt;float&gt; properties) as a dictionary.
-        /// Dictionary keys are property names, values are the corresponding hourly lists.
+        /// Returns all hourly time series (List&lt;float&gt; properties) as a dictionary with type-safe enum keys.
+        /// Dictionary keys are CarbonFluxProperty enum values, values are the corresponding hourly lists.
         ///
         /// INCLUDED PROPERTIES:
         /// - Carbon fluxes: nee, reco, gpp, gppOver, gppUnder, recoOver, recoUnder, recoHetero
@@ -840,71 +840,305 @@ namespace source.data
         /// USAGE:
         /// Enables efficient batch export of hourly data for analysis, visualization, or output to vvvv.
         /// All lists contain 24 elements (hours 0-23).
+        /// Use GetHourlyTimeSeriesAsStringDictionary() for backwards compatibility with string keys.
         /// </summary>
-        /// <returns>Dictionary mapping property names to their hourly value lists</returns>
-        public Dictionary<string, List<float>> GetHourlyTimeSeriesAsDictionary()
+        /// <returns>Dictionary mapping CarbonFluxProperty enum keys to their hourly value lists</returns>
+        public Dictionary<CarbonFluxProperty, List<float>> GetHourlyTimeSeriesAsDictionary()
         {
-            return new Dictionary<string, List<float>>
+            return new Dictionary<CarbonFluxProperty, List<float>>
             {
-                { "nee", nee },
-                { "reco", reco },
-                { "gpp", gpp },
-                { "gppOver", gppOver },
-                { "gppUnder", gppUnder },
-                { "recoUnder", recoUnder },
-                { "recoOver", recoOver },
-                { "recoHetero", recoHetero },
-                { "TscaleReco", TscaleReco },
-                { "TscaleOver", TscaleOver },
-                { "vpdScale", vpdScale },
-                { "WaterStress", WaterStress },
-                { "PARscaleUnderstory", PARscaleUnderstory },
-                { "PARscaleOverstory", PARscaleOverstory }
+                { CarbonFluxProperty.nee, nee },
+                { CarbonFluxProperty.reco, reco },
+                { CarbonFluxProperty.gpp, gpp },
+                { CarbonFluxProperty.gppOver, gppOver },
+                { CarbonFluxProperty.gppUnder, gppUnder },
+                { CarbonFluxProperty.recoUnder, recoUnder },
+                { CarbonFluxProperty.recoOver, recoOver },
+                { CarbonFluxProperty.recoHetero, recoHetero },
+                { CarbonFluxProperty.TscaleReco, TscaleReco },
+                { CarbonFluxProperty.TscaleOver, TscaleOver },
+                { CarbonFluxProperty.vpdScale, vpdScale },
+                { CarbonFluxProperty.WaterStress, WaterStress },
+                { CarbonFluxProperty.PARscaleUnderstory, PARscaleUnderstory },
+                { CarbonFluxProperty.PARscaleOverstory, PARscaleOverstory }
             };
         }
 
         /// <summary>
+        /// Returns all hourly time series as a string-keyed dictionary (backwards compatibility).
+        /// Use GetHourlyTimeSeriesAsDictionary() for type-safe enum keys.
+        /// </summary>
+        /// <returns>Dictionary mapping string property names to their hourly value lists</returns>
+        public Dictionary<string, List<float>> GetHourlyTimeSeriesAsStringDictionary()
+        {
+            return CarbonFluxPropertyExtensions.ConvertToStringTimeSeriesDictionary(GetHourlyTimeSeriesAsDictionary());
+        }
+
+        /// <summary>
         /// Transposes hourly time series from property-oriented to hour-oriented structure.
-        /// Returns a list of 24 HourlyState objects, one per hour, each containing all property values for that hour.
+        /// Returns a list of 24 BreathState objects, one per hour, each containing all property values for that hour.
         ///
         /// TRANSFORMATION:
         /// Input: Property lists with 24 elements each (nee[0-23], gpp[0-23], etc.)
-        /// Output: 24 HourlyState objects, each with all properties at that hour index
+        /// Output: 24 BreathState objects, each with type-safe enum-keyed properties at that hour index
         ///
         /// USAGE:
         /// Enables hour-by-hour analysis and export with proper timestamps.
-        /// Each HourlyState contains DateTime (baseDate + hour offset) and all flux/scaler values.
+        /// Each BreathState contains DateTime (baseDate + hour offset) and all flux/scaler values.
         /// </summary>
         /// <param name="baseDate">Starting datetime for hour 0 (subsequent hours incremented by 1 hour)</param>
-        /// <returns>List of 24 HourlyState objects, one per hour (0-23)</returns>
-        public List<HourlyState> GetHourlyStates(DateTime baseDate)
+        /// <returns>List of 24 BreathState objects, one per hour (0-23)</returns>
+        public List<BreathState> GetHourlyStates(DateTime baseDate)
         {
-            var hourlyStates = new List<HourlyState>();
+            var hourlyStates = new List<BreathState>();
             var timeSeriesDict = GetHourlyTimeSeriesAsDictionary();
 
             for (int hour = 0; hour < 24; hour++)
             {
-                var properties = new Dictionary<string, float>();
+                var properties = new Dictionary<CarbonFluxProperty, float>();
 
                 // Extract value at current hour index from each property list
                 foreach (var kvp in timeSeriesDict)
                 {
-                    string propertyName = kvp.Key;
+                    CarbonFluxProperty property = kvp.Key;
                     List<float> valuesList = kvp.Value;
 
                     // Add the value at this hour index to the properties dictionary
                     if (valuesList != null && hour < valuesList.Count)
                     {
-                        properties[propertyName] = valuesList[hour];
+                        properties[property] = valuesList[hour];
                     }
                 }
 
-                // Create HourlyState with timestamp and properties for this hour
+                // Create BreathState with timestamp and enum-keyed properties for this hour
                 var timestamp = baseDate.AddHours(hour);
-                hourlyStates.Add(new HourlyState(timestamp, properties));
+                hourlyStates.Add(new BreathState(timestamp, properties));
             }
 
             return hourlyStates;
+        }
+    }
+
+    /// <summary>
+    /// Enumeration of carbon flux and environmental property names from the exchanges class.
+    /// Provides type-safe access to hourly time series property names.
+    ///
+    /// SEMANTIC GROUPING:
+    /// - Carbon Fluxes (Primary outputs): GPP, RECO, NEE with overstory/understory components
+    /// - Temperature Scalers: Temperature response functions for GPP and respiration
+    /// - Environmental Scalers: VPD and water stress modifiers
+    /// - Light Scalers: PAR saturation responses for overstory and understory
+    ///
+    /// USAGE:
+    /// Enables type-safe property name access in BreathState and exchanges operations.
+    /// Can be converted to/from strings for dictionary lookups.
+    /// </summary>
+    public enum CarbonFluxProperty
+    {
+        // ====================================================================
+        // CARBON FLUXES - Primary outputs (µmol CO₂ m⁻² s⁻¹)
+        // ====================================================================
+
+        /// <summary>Gross Primary Production - Total (overstory + understory)</summary>
+        gpp,
+
+        /// <summary>Gross Primary Production - Overstory component (phenology-dependent)</summary>
+        gppOver,
+
+        /// <summary>Gross Primary Production - Understory component (always active)</summary>
+        gppUnder,
+
+        /// <summary>Ecosystem Respiration - Total (overstory + understory + heterotrophic)</summary>
+        reco,
+
+        /// <summary>Ecosystem Respiration - Overstory autotrophic component</summary>
+        recoOver,
+
+        /// <summary>Ecosystem Respiration - Understory autotrophic component</summary>
+        recoUnder,
+
+        /// <summary>Ecosystem Respiration - Heterotrophic soil respiration component</summary>
+        recoHetero,
+
+        /// <summary>Net Ecosystem Exchange (RECO - GPP, positive = source, negative = sink)</summary>
+        nee,
+
+        // ====================================================================
+        // TEMPERATURE SCALERS - Temperature response functions (dimensionless)
+        // ====================================================================
+
+        /// <summary>Temperature response scaler for overstory GPP (symmetric polynomial, 0-1 range)</summary>
+        TscaleOver,
+
+        /// <summary>Temperature response scaler for respiration (Lloyd-Taylor exponential, >1 possible)</summary>
+        TscaleReco,
+
+        // ====================================================================
+        // ENVIRONMENTAL SCALERS - Environmental modifiers (dimensionless, 0-1 range)
+        // ====================================================================
+
+        /// <summary>Vapor Pressure Deficit response scaler (sigmoid function)</summary>
+        vpdScale,
+
+        /// <summary>Water stress scaler based on precipitation-ET0 balance (rolling memory)</summary>
+        WaterStress,
+
+        // ====================================================================
+        // LIGHT SCALERS - PAR saturation responses (dimensionless, 0-1 range)
+        // ====================================================================
+
+        /// <summary>PAR saturation scaler for overstory (Michaelis-Menten function)</summary>
+        PARscaleOverstory,
+
+        /// <summary>PAR saturation scaler for understory (Michaelis-Menten with lower half-saturation)</summary>
+        PARscaleUnderstory
+    }
+
+    /// <summary>
+    /// Extension methods for CarbonFluxProperty enumeration.
+    /// Provides conversion utilities between enum values and property name strings.
+    /// </summary>
+    public static class CarbonFluxPropertyExtensions
+    {
+        /// <summary>
+        /// Converts CarbonFluxProperty enum to its string representation (property name).
+        /// </summary>
+        /// <param name="property">The enum value to convert</param>
+        /// <returns>Property name as string (e.g., "gpp", "nee", "TscaleOver")</returns>
+        public static string ToPropertyName(this CarbonFluxProperty property)
+        {
+            return property.ToString();
+        }
+
+        /// <summary>
+        /// Attempts to parse a property name string to CarbonFluxProperty enum.
+        /// </summary>
+        /// <param name="propertyName">Property name string to parse</param>
+        /// <param name="property">Output parameter containing the parsed enum value if successful</param>
+        /// <returns>True if parsing succeeded, false otherwise</returns>
+        public static bool TryParsePropertyName(string propertyName, out CarbonFluxProperty property)
+        {
+            return Enum.TryParse(propertyName, out property);
+        }
+
+        /// <summary>
+        /// Gets all CarbonFluxProperty enum values as a list.
+        /// Useful for iterating over all properties or generating UI elements.
+        /// </summary>
+        /// <returns>List of all CarbonFluxProperty values in declaration order</returns>
+        public static List<CarbonFluxProperty> GetAllProperties()
+        {
+            return Enum.GetValues(typeof(CarbonFluxProperty))
+                       .Cast<CarbonFluxProperty>()
+                       .ToList();
+        }
+
+        /// <summary>
+        /// Gets all property names as a list of strings.
+        /// Useful for dictionary operations and exports.
+        /// </summary>
+        /// <returns>List of all property names as strings</returns>
+        public static List<string> GetAllPropertyNames()
+        {
+            return GetAllProperties()
+                   .Select(p => p.ToPropertyName())
+                   .ToList();
+        }
+
+        /// <summary>
+        /// Checks if a property name string is a valid CarbonFluxProperty.
+        /// </summary>
+        /// <param name="propertyName">Property name to validate</param>
+        /// <returns>True if the name corresponds to a valid enum value</returns>
+        public static bool IsValidPropertyName(string propertyName)
+        {
+            return Enum.IsDefined(typeof(CarbonFluxProperty), propertyName);
+        }
+
+        /// <summary>
+        /// Converts a string-keyed dictionary to an enum-keyed dictionary.
+        /// Provides backwards compatibility for string-based property access.
+        /// </summary>
+        /// <param name="stringDict">Dictionary with string keys</param>
+        /// <returns>Dictionary with CarbonFluxProperty enum keys</returns>
+        public static Dictionary<CarbonFluxProperty, float> ConvertToEnumDictionary(Dictionary<string, float> stringDict)
+        {
+            var result = new Dictionary<CarbonFluxProperty, float>();
+
+            if (stringDict == null) return result;
+
+            foreach (var kvp in stringDict)
+            {
+                if (TryParsePropertyName(kvp.Key, out var property))
+                {
+                    result[property] = kvp.Value;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Converts an enum-keyed dictionary to a string-keyed dictionary.
+        /// Useful for serialization and legacy interop.
+        /// </summary>
+        /// <param name="enumDict">Dictionary with CarbonFluxProperty enum keys</param>
+        /// <returns>Dictionary with string keys</returns>
+        public static Dictionary<string, float> ConvertToStringDictionary(Dictionary<CarbonFluxProperty, float> enumDict)
+        {
+            var result = new Dictionary<string, float>();
+
+            if (enumDict == null) return result;
+
+            foreach (var kvp in enumDict)
+            {
+                result[kvp.Key.ToPropertyName()] = kvp.Value;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Converts a string-keyed time series dictionary to an enum-keyed dictionary.
+        /// For use with GetHourlyTimeSeriesAsDictionary compatibility.
+        /// </summary>
+        /// <param name="stringDict">Dictionary with string keys and List&lt;float&gt; values</param>
+        /// <returns>Dictionary with CarbonFluxProperty enum keys and List&lt;float&gt; values</returns>
+        public static Dictionary<CarbonFluxProperty, List<float>> ConvertToEnumTimeSeriesDictionary(Dictionary<string, List<float>> stringDict)
+        {
+            var result = new Dictionary<CarbonFluxProperty, List<float>>();
+
+            if (stringDict == null) return result;
+
+            foreach (var kvp in stringDict)
+            {
+                if (TryParsePropertyName(kvp.Key, out var property))
+                {
+                    result[property] = kvp.Value;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Converts an enum-keyed time series dictionary to a string-keyed dictionary.
+        /// For backwards compatibility and serialization.
+        /// </summary>
+        /// <param name="enumDict">Dictionary with CarbonFluxProperty enum keys and List&lt;float&gt; values</param>
+        /// <returns>Dictionary with string keys and List&lt;float&gt; values</returns>
+        public static Dictionary<string, List<float>> ConvertToStringTimeSeriesDictionary(Dictionary<CarbonFluxProperty, List<float>> enumDict)
+        {
+            var result = new Dictionary<string, List<float>>();
+
+            if (enumDict == null) return result;
+
+            foreach (var kvp in enumDict)
+            {
+                result[kvp.Key.ToPropertyName()] = kvp.Value;
+            }
+
+            return result;
         }
     }
 
@@ -925,7 +1159,7 @@ namespace source.data
     /// USAGE:
     /// Created by exchanges.GetHourlyStates() for hour-by-hour analysis and export.
     /// </summary>
-    public class HourlyState
+    public class BreathState
     {
         /// <summary>
         /// Timestamp for this hourly state (date + hour offset).
@@ -934,61 +1168,111 @@ namespace source.data
         public DateTime Timestamp { get; set; }
 
         /// <summary>
-        /// Dictionary of property names to values at this hour.
-        /// Keys: property names (e.g., "nee", "gpp", "TscaleOver")
+        /// Dictionary of carbon flux properties to values at this hour.
+        /// Keys: CarbonFluxProperty enum values (type-safe property identifiers)
         /// Values: float values at this specific hour
         /// </summary>
-        public Dictionary<string, float> Properties { get; set; }
+        public Dictionary<CarbonFluxProperty, float> Properties { get; set; }
 
         /// <summary>
         /// Default constructor for serialization/deserialization.
+        /// Initializes Timestamp to January 1, 1980 and Properties to an empty dictionary.
         /// </summary>
-        public HourlyState()
+        public BreathState()
         {
-            Timestamp = DateTime.MinValue;
-            Properties = new Dictionary<string, float>();
+            Timestamp = new DateTime(1980, 1, 1);
+            Properties = new Dictionary<CarbonFluxProperty, float>();
         }
 
         /// <summary>
-        /// Constructor to create HourlyState with timestamp and properties.
+        /// Constructor to create BreathState with timestamp and properties.
         /// </summary>
         /// <param name="timestamp">DateTime for this hour</param>
-        /// <param name="properties">Dictionary of property names to values at this hour</param>
-        public HourlyState(DateTime timestamp, Dictionary<string, float> properties)
+        /// <param name="properties">Dictionary of CarbonFluxProperty enum keys to values at this hour</param>
+        public BreathState(DateTime timestamp, Dictionary<CarbonFluxProperty, float> properties)
         {
             Timestamp = timestamp;
-            Properties = properties ?? new Dictionary<string, float>();
+            Properties = properties ?? new Dictionary<CarbonFluxProperty, float>();
         }
 
         /// <summary>
-        /// Retrieves a specific property value by name.
+        /// Retrieves a specific property value by enum key (type-safe).
         /// Returns 0.0f if property doesn't exist.
+        /// </summary>
+        /// <param name="property">CarbonFluxProperty enum value</param>
+        /// <returns>Property value or 0.0f if not found</returns>
+        public float GetProperty(CarbonFluxProperty property)
+        {
+            return Properties.TryGetValue(property, out float value) ? value : 0.0f;
+        }
+
+        /// <summary>
+        /// Retrieves a specific property value by string name (backwards compatibility).
+        /// Returns 0.0f if property doesn't exist or string is invalid.
         /// </summary>
         /// <param name="propertyName">Name of the property to retrieve</param>
         /// <returns>Property value or 0.0f if not found</returns>
         public float GetProperty(string propertyName)
         {
-            return Properties.TryGetValue(propertyName, out float value) ? value : 0.0f;
+            if (CarbonFluxPropertyExtensions.TryParsePropertyName(propertyName, out var property))
+            {
+                return GetProperty(property);
+            }
+            return 0.0f;
         }
 
         /// <summary>
-        /// Returns all properties as a dictionary (the "split" operation).
-        /// Provides access to the complete set of hourly values.
+        /// Returns all properties as an enum-keyed dictionary (the "split" operation).
+        /// Provides access to the complete set of hourly values with type-safe keys.
         /// </summary>
-        /// <returns>Dictionary of all property names and values</returns>
-        public Dictionary<string, float> GetAllProperties()
+        /// <returns>Dictionary of CarbonFluxProperty enum keys and float values</returns>
+        public Dictionary<CarbonFluxProperty, float> GetAllProperties()
         {
             return Properties;
         }
 
         /// <summary>
-        /// Checks if a property exists in this hourly state.
+        /// Returns all properties as a string-keyed dictionary (backwards compatibility).
+        /// Useful for serialization and legacy code interop.
+        /// </summary>
+        /// <returns>Dictionary of string keys and float values</returns>
+        public Dictionary<string, float> GetAllPropertiesAsStrings()
+        {
+            return CarbonFluxPropertyExtensions.ConvertToStringDictionary(Properties);
+        }
+
+        /// <summary>
+        /// Checks if a property exists in this hourly state (type-safe).
+        /// </summary>
+        /// <param name="property">CarbonFluxProperty enum value to check</param>
+        /// <returns>True if property exists, false otherwise</returns>
+        public bool HasProperty(CarbonFluxProperty property)
+        {
+            return Properties.ContainsKey(property);
+        }
+
+        /// <summary>
+        /// Checks if a property exists in this hourly state (string-based, backwards compatibility).
         /// </summary>
         /// <param name="propertyName">Name of the property to check</param>
         /// <returns>True if property exists, false otherwise</returns>
         public bool HasProperty(string propertyName)
         {
-            return Properties.ContainsKey(propertyName);
+            if (CarbonFluxPropertyExtensions.TryParsePropertyName(propertyName, out var property))
+            {
+                return HasProperty(property);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Creates a default instance of BreathState.
+        /// Returns a new BreathState with Timestamp set to January 1, 1980 and an empty Properties dictionary.
+        /// </summary>
+        /// <param name="Output">A new default BreathState instance</param>
+        public static void CreateDefault(out BreathState Output)
+        {
+            Output = new BreathState();
         }
     }
 }

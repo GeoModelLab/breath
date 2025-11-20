@@ -85,6 +85,76 @@ namespace source.functions
     /// </summary>
     public static class utils
     {
+        #region BreathState Aggregation
+
+        /// <summary>
+        /// Aggregates a sequence of BreathState instances into a property-oriented dictionary structure.
+        /// Transposes from hour-oriented (list of BreathStates) to property-oriented (dictionary of lists).
+        ///
+        /// TRANSFORMATION:
+        /// Input: Sequence of N BreathState instances, each with enum-keyed properties dictionary
+        /// Output: Dictionary with CarbonFluxProperty enum keys and lists of N values
+        ///
+        /// ASSUMPTION:
+        /// All BreathState instances contain the same set of property keys.
+        /// Missing properties will use 0.0f as default value.
+        ///
+        /// USAGE:
+        /// Inverse operation of exchanges.GetHourlyStates() - converts hour-oriented data
+        /// back to property-oriented time series for analysis or export.
+        ///
+        /// EXAMPLE:
+        /// Input: [BreathState{nee:1, gpp:2}, BreathState{nee:4, gpp:5}, BreathState{nee:7, gpp:8}]
+        /// Output: {CarbonFluxProperty.nee: [1, 4, 7], CarbonFluxProperty.gpp: [2, 5, 8]}
+        /// </summary>
+        /// <param name="breathStates">Sequence of BreathState instances to aggregate</param>
+        /// <returns>Dictionary mapping CarbonFluxProperty enum keys to lists of values across all instances</returns>
+        public static Dictionary<CarbonFluxProperty, List<float>> AggregateBreathStates(IEnumerable<BreathState> breathStates)
+        {
+            var result = new Dictionary<CarbonFluxProperty, List<float>>();
+
+            // Convert to list for multiple enumeration
+            var statesList = breathStates.ToList();
+
+            // Return empty dictionary if no states provided
+            if (statesList.Count == 0)
+            {
+                return result;
+            }
+
+            // First pass: Collect all unique property keys from all BreathState instances
+            var allKeys = new HashSet<CarbonFluxProperty>();
+            foreach (var state in statesList)
+            {
+                if (state?.Properties != null)
+                {
+                    foreach (var key in state.Properties.Keys)
+                    {
+                        allKeys.Add(key);
+                    }
+                }
+            }
+
+            // Second pass: For each property key, collect values from all BreathState instances
+            foreach (var key in allKeys)
+            {
+                var valuesList = new List<float>();
+
+                foreach (var state in statesList)
+                {
+                    // Use GetProperty which returns 0.0f if property doesn't exist
+                    float value = state?.GetProperty(key) ?? 0.0f;
+                    valuesList.Add(value);
+                }
+
+                result[key] = valuesList;
+            }
+
+            return result;
+        }
+
+        #endregion
+
         #region additional weather inputs
         //hourly temperatures for chilling (24 values in a list) (Campbell, 1985)
         public static List<float> hourlyTemperature(input input)
