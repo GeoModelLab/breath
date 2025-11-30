@@ -565,9 +565,14 @@ namespace source.functions
 
                 if (prec > et0Sum) et0Sum = prec;
 
-                waterAvailability = ndviNorm * (.5F + .5F *
+                if (et0Sum > 0)
+                {
+                    waterAvailability = ndviNorm * (.5F + .5F *
                     (prec / et0Sum)) +
                     (1 - ndviNorm) * (prec / et0Sum);
+                }
+                else
+                {  waterAvailability = 1; waterStress = 1; }
 
                 if (waterAvailability < 0)
                 {
@@ -852,6 +857,8 @@ namespace source.functions
             //pass values from the previous day
             outputT0 = outputT1;
             outputT1 = new output();
+            outputT1.exchanges.ET0memory = outputT0.exchanges.ET0memory;
+            outputT1.exchanges.PrecipitationMemory = outputT0.exchanges.PrecipitationMemory;
 
             //call the functions
             //dormancy season
@@ -882,6 +889,7 @@ namespace source.functions
             float dewPoint = Math.Clamp(inputDaily.dewPointTemperature, inputDaily.airTemperatureMinimum - 5,
                 inputDaily.airTemperatureMaximum);
             float rain = inputDaily.precipitation;
+            
 
             for (int h = 0; h < 24; h++)
             {
@@ -921,7 +929,8 @@ namespace source.functions
         public radData dayLength(input input, float Tmax, float Tmin)
         {
             radData _radData = input.radData;
-            _radData.gsr = input.PAR;
+
+
             // Constants
             float solarConstant = 4.921f; // MJ m⁻² h⁻¹ (derived from 1367 W/m²)
             float DtoR = (float)Math.PI / 180f;
@@ -969,6 +978,15 @@ namespace source.functions
                 if (hourlyETR > 0f) dayHours++;
             }
 
+
+            // Estimate global solar radiation (GSR) if not measured
+            if (_radData.gsr == 0f)
+            {
+                float kRs = 0.19f; // empirical constant
+                float Rs = kRs * (float)Math.Sqrt(Tmax - Tmin) * _radData.etr;
+                _radData.gsr = (float)Math.Round(Rs, 2); // MJ m⁻² day⁻¹
+            }
+
             // Compute analytical ETR and day length if within valid latitudes
             if (input.latitude < 65 && input.latitude > -65)
             {
@@ -1011,7 +1029,7 @@ namespace source.functions
         public float referenceEvapotranspiration(input dailyInput, input Input, int hour)
         {
             // Convert Rs from W/m² to MJ/m²/h
-            double Rs_MJ = dailyInput.PAR;
+            double Rs_MJ = dailyInput.radData.gsrHourly[hour];
 
             // Given coefficients
             double c0 = 0.1396;

@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "ysM2LHmZHrE=",
+  "dgSpecHash": "Wcb7Hv8Xrok=",
   "success": true,
-  "projectFilePath": "C:\\REPO\\breath\\source\\source.csproj",
+  "projectFilePath": "C:\\Users\\Administrator\\OneDrive - CREA\\Documenti\\git\\breath\\source\\source.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\Natan\\.nuget\\packages\\system.reactive\\6.0.0\\system.reactive.6.0.0.nupkg.sha512"
+    "C:\\Users\\Administrator\\.nuget\\packages\\system.reactive\\6.0.0\\system.reactive.6.0.0.nupkg.sha512"
   ],
   "logs": []
 }

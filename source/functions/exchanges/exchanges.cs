@@ -289,7 +289,7 @@ namespace source.functions
 
                 #region VPD effect
                 //compute VPD effect
-                float VPDscale = utils.VPDfunction(input.vaporPressureDeficitH[h] / 10, parameters);
+                float VPDscale = utils.VPDfunction(input.vaporPressureDeficitH[h], parameters);
                 outputT1.exchanges.vpdScale.Add(VPDscale);
                 #endregion
 
@@ -347,9 +347,10 @@ namespace source.functions
                 outputT1.exchanges.recoHetero.Add(recoHetero);
                 outputT1.exchanges.reco.Add(reco);
 
-               
+
                 #endregion
 
+               
                 //Net Ecosystem Exchange
                 outputT1.exchanges.nee.Add(reco - gpp);
 
